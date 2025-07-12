@@ -22,12 +22,20 @@
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
         .submit-btn { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         .debug-panel { background: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px; font-family: monospace; font-size: 12px; }
+        .test-notice { background: #ffeb3b; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 5px solid #ff9800; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Collections Dashboard</h1>
         <p>Welcome, <span id="collectorName"></span> | <span id="currentDate"></span></p>
+    </div>
+    
+    <!-- TEST MODE NOTICE -->
+    <div class="test-notice">
+        <strong>⚠️ DIAGNOSTIC TEST MODE ACTIVE</strong><br>
+        The follow-up form is using hardcoded test data to diagnose data transmission issues.
+        Check the console and Follow_Up_Log sheet after submission.
     </div>
     
     <div class="stats-row">
@@ -83,7 +91,10 @@
     </div>
     
     <div class="follow-up-form" id="followUpForm" style="display: none;">
-        <h3>Log Follow-Up</h3>
+        <h3>Log Follow-Up (TEST MODE)</h3>
+        <p style="color: #ff9800; font-weight: bold;">
+            ⚠️ This form will submit hardcoded test data regardless of what you enter.
+        </p>
         <form id="followUpFormElement">
             <div class="form-group">
                 <label for="clientSelect">Client:</label>
@@ -131,7 +142,7 @@
                 <label for="notes">Notes:</label>
                 <textarea id="notes" name="notes" rows="3" placeholder="Additional comments..."></textarea>
             </div>
-            <button type="submit" class="submit-btn">Submit Follow-Up</button>
+            <button type="submit" class="submit-btn">Submit Test Data</button>
             <button type="button" class="action-btn" onclick="hideFollowUpForm()">Cancel</button>
             <button type="button" class="action-btn" onclick="toggleDebug()">Show Debug</button>
         </form>
@@ -288,84 +299,58 @@
             }
         });
         
-        // Handle form submission - ENHANCED WITH DEBUGGING
+        // HARDCODED TEST FORM SUBMISSION - DIAGNOSTIC VERSION
         document.getElementById('followUpFormElement').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
-            
-            // CRITICAL: Debug all form data
-            console.log('=== FORM DATA DEBUG ===');
-            console.log('Collector from URL:', collectorName);
-            updateDebug('=== FORM SUBMISSION DEBUG ===');
-            updateDebug(`Collector: ${collectorName}`);
-            
-            for (let [key, value] of formData.entries()) {
-                console.log(`Form field "${key}": "${value}"`);
-                updateDebug(`${key}: "${value}"`);
-            }
-            
-            // Build data object with validation
-            const data = {
-                collector: collectorName || 'MISSING_COLLECTOR',
-                client_code: formData.get('client') || 'MISSING_CLIENT',
-                contact_date: formData.get('contact_date') || new Date().toISOString().split('T')[0],
-                contact_method: formData.get('contact_method') || 'MISSING_METHOD',
-                outcome: formData.get('outcome') || 'MISSING_OUTCOME',
-                promised_amount: formData.get('promised_amount') || '',
-                next_follow_up: formData.get('next_follow_up') || '',
-                notes: formData.get('notes') || '',
+            // HARDCODED TEST DATA - bypasses all form collection issues
+            const testData = {
+                collector: "HISHAM",
+                client_code: "TEST001",
+                contact_date: "2025-07-12",
+                contact_method: "Phone Call",
+                outcome: "Payment Promised",
+                promised_amount: "5000",
+                next_follow_up: "2025-07-20",
+                notes: "Hardcoded test submission",
                 timestamp: new Date().toISOString()
             };
             
-            console.log('=== SENDING TO API ===');
-            console.log('Final data object:', JSON.stringify(data, null, 2));
-            updateDebug('Data being sent: ' + JSON.stringify(data, null, 2));
-            
-            // Validate critical fields
-            if (!data.collector || data.collector === 'MISSING_COLLECTOR') {
-                alert('Error: Collector name not found. Please refresh and try again.');
-                return;
-            }
-            
-            if (!data.client_code || data.client_code === 'MISSING_CLIENT') {
-                alert('Error: Please select a client.');
-                return;
-            }
+            console.log('=== HARDCODED TEST SUBMISSION ===');
+            console.log('Sending hardcoded test data:', testData);
+            updateDebug('=== HARDCODED TEST SUBMISSION ===');
+            updateDebug(`Test data: ${JSON.stringify(testData, null, 2)}`);
             
             try {
-                console.log('Making API call to:', 'https://jowan13.app.n8n.cloud/webhook/follow-up');
-                updateDebug('Making API call...');
-                
                 const response = await fetch('https://jowan13.app.n8n.cloud/webhook/follow-up', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(testData)
                 });
                 
-                console.log('API Response status:', response.status);
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+                console.log('Response:', responseText);
+                
                 updateDebug(`API Response status: ${response.status}`);
+                updateDebug(`API Response: ${responseText}`);
                 
                 if (response.ok) {
-                    const responseText = await response.text();
-                    console.log('API Success response:', responseText);
-                    updateDebug(`API Success: ${responseText}`);
-                    alert('Follow-up logged successfully!');
+                    alert('Test submission successful! Check Follow_Up_Log sheet for populated data.');
+                    updateDebug('✅ Test submission successful!');
                     this.reset();
                     hideFollowUpForm();
-                    loadDashboard(); // Refresh data
+                    loadDashboard();
                 } else {
-                    const errorText = await response.text();
-                    console.error('API Error response:', errorText);
-                    updateDebug(`API Error: ${response.status} - ${errorText}`);
-                    alert(`Error logging follow-up: ${response.status} - ${errorText}`);
+                    alert(`Test failed: ${response.status} - ${responseText}`);
+                    updateDebug(`❌ Test failed: ${response.status}`);
                 }
             } catch (error) {
-                console.error('Network error:', error);
-                updateDebug(`Network error: ${error.message}`);
-                alert(`Network error: ${error.message}`);
+                console.error('Test error:', error);
+                alert(`Test error: ${error.message}`);
+                updateDebug(`❌ Test error: ${error.message}`);
             }
         });
         
@@ -374,4 +359,3 @@
     </script>
 </body>
 </html>
-
