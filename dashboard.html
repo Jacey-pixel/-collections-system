@@ -21,21 +21,13 @@
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
         .submit-btn { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        .debug-panel { background: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px; font-family: monospace; font-size: 12px; }
-        .test-notice { background: #ffeb3b; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 5px solid #ff9800; }
+        .submit-btn:hover { background-color: #45a049; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Collections Dashboard</h1>
         <p>Welcome, <span id="collectorName"></span> | <span id="currentDate"></span></p>
-    </div>
-    
-    <!-- TEST MODE NOTICE -->
-    <div class="test-notice">
-        <strong>⚠️ DIAGNOSTIC TEST MODE ACTIVE</strong><br>
-        The follow-up form is using hardcoded test data to diagnose data transmission issues.
-        Check the console and Follow_Up_Log sheet after submission.
     </div>
     
     <div class="stats-row">
@@ -84,17 +76,8 @@
         </table>
     </div>
     
-    <!-- DEBUG PANEL -->
-    <div class="debug-panel" id="debugPanel" style="display: none;">
-        <h4>Debug Information:</h4>
-        <div id="debugContent"></div>
-    </div>
-    
     <div class="follow-up-form" id="followUpForm" style="display: none;">
-        <h3>Log Follow-Up (TEST MODE)</h3>
-        <p style="color: #ff9800; font-weight: bold;">
-            ⚠️ This form will submit hardcoded test data regardless of what you enter.
-        </p>
+        <h3>Log Follow-Up</h3>
         <form id="followUpFormElement">
             <div class="form-group">
                 <label for="clientSelect">Client:</label>
@@ -142,20 +125,17 @@
                 <label for="notes">Notes:</label>
                 <textarea id="notes" name="notes" rows="3" placeholder="Additional comments..."></textarea>
             </div>
-            <button type="submit" class="submit-btn">Submit Test Data</button>
+            <button type="submit" class="submit-btn">Submit Follow-Up</button>
             <button type="button" class="action-btn" onclick="hideFollowUpForm()">Cancel</button>
-            <button type="button" class="action-btn" onclick="toggleDebug()">Show Debug</button>
         </form>
     </div>
 
     <script>
-        // Get collector name from URL - ENHANCED WITH VALIDATION
+        // Get collector name from URL
         const urlParams = new URLSearchParams(window.location.search);
         const collectorName = urlParams.get('collector');
 
-        console.log('=== DASHBOARD INITIALIZATION ===');
-        console.log('URL parameters:', window.location.search);
-        console.log('Collector name from URL:', collectorName);
+        console.log('Dashboard loaded for collector:', collectorName);
 
         if (!collectorName) {
             console.error('No collector parameter found in URL');
@@ -167,29 +147,16 @@
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
         document.getElementById('contactDate').value = new Date().toISOString().split('T')[0];
         
-        // Debug functions
-        function toggleDebug() {
-            const panel = document.getElementById('debugPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
-        
-        function updateDebug(message) {
-            const content = document.getElementById('debugContent');
-            content.innerHTML += message + '<br>';
-        }
-        
         // Load dashboard data
         async function loadDashboard() {
             try {
                 console.log('Loading dashboard data for collector:', collectorName);
-                updateDebug(`Loading dashboard for: ${collectorName}`);
                 
                 // Fetch client data for this collector
                 const clientResponse = await fetch(`https://jowan13.app.n8n.cloud/webhook/client-data?collector=${collectorName}`);
                 const clientData = await clientResponse.json();
                 
                 console.log('Client data received:', clientData);
-                updateDebug(`Client data loaded: ${clientData.clients ? clientData.clients.length : 0} clients`);
                 
                 // Fetch enhanced statistics
                 const statsResponse = await fetch(`https://jowan13.app.n8n.cloud/webhook/dashboard-stats?collector=${collectorName}`);
@@ -202,7 +169,6 @@
                 loadClientSelect(clientData.clients);
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                updateDebug(`Error loading dashboard: ${error.message}`);
             }
         }
         
@@ -272,7 +238,6 @@
             document.getElementById('followUpForm').style.display = 'block';
             if (clientCode) {
                 document.getElementById('clientSelect').value = clientCode;
-                updateDebug(`Form opened for client: ${clientCode}`);
             }
             document.getElementById('followUpForm').scrollIntoView({ behavior: 'smooth' });
         }
@@ -299,27 +264,40 @@
             }
         });
         
-        // HARDCODED TEST FORM SUBMISSION - DIAGNOSTIC VERSION
+        // Production form submission - replace the hardcoded test version
         document.getElementById('followUpFormElement').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // HARDCODED TEST DATA - bypasses all form collection issues
-            const testData = {
-                collector: "HISHAM",
-                client_code: "TEST001",
-                contact_date: "2025-07-12",
-                contact_method: "Phone Call",
-                outcome: "Payment Promised",
-                promised_amount: "5000",
-                next_follow_up: "2025-07-20",
-                notes: "Hardcoded test submission",
+            const formData = new FormData(this);
+            
+            // Build data object from actual form fields
+            const data = {
+                collector: collectorName,
+                client_code: formData.get('client'),
+                contact_date: formData.get('contact_date'),
+                contact_method: formData.get('contact_method'),
+                outcome: formData.get('outcome'),
+                promised_amount: formData.get('promised_amount') || '',
+                next_follow_up: formData.get('next_follow_up') || '',
+                notes: formData.get('notes') || '',
                 timestamp: new Date().toISOString()
             };
             
-            console.log('=== HARDCODED TEST SUBMISSION ===');
-            console.log('Sending hardcoded test data:', testData);
-            updateDebug('=== HARDCODED TEST SUBMISSION ===');
-            updateDebug(`Test data: ${JSON.stringify(testData, null, 2)}`);
+            console.log('Submitting real form data:', data);
+            
+            // Validate required fields
+            if (!data.client_code) {
+                alert('Please select a client.');
+                return;
+            }
+            if (!data.contact_method) {
+                alert('Please select a contact method.');
+                return;
+            }
+            if (!data.outcome) {
+                alert('Please select an outcome.');
+                return;
+            }
             
             try {
                 const response = await fetch('https://jowan13.app.n8n.cloud/webhook/follow-up', {
@@ -327,30 +305,20 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(testData)
+                    body: JSON.stringify(data)
                 });
                 
-                console.log('Response status:', response.status);
-                const responseText = await response.text();
-                console.log('Response:', responseText);
-                
-                updateDebug(`API Response status: ${response.status}`);
-                updateDebug(`API Response: ${responseText}`);
-                
                 if (response.ok) {
-                    alert('Test submission successful! Check Follow_Up_Log sheet for populated data.');
-                    updateDebug('✅ Test submission successful!');
+                    alert('Follow-up logged successfully!');
                     this.reset();
                     hideFollowUpForm();
                     loadDashboard();
                 } else {
-                    alert(`Test failed: ${response.status} - ${responseText}`);
-                    updateDebug(`❌ Test failed: ${response.status}`);
+                    alert('Error logging follow-up. Please try again.');
                 }
             } catch (error) {
-                console.error('Test error:', error);
-                alert(`Test error: ${error.message}`);
-                updateDebug(`❌ Test error: ${error.message}`);
+                console.error('Error:', error);
+                alert('Error logging follow-up. Please try again.');
             }
         });
         
