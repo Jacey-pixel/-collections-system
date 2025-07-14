@@ -86,8 +86,8 @@
     </div>
 
     <script>
-        // --- CORRECTED CONFIGURATION ---
-        // This is the BASE URL for all webhook calls. Paths will be added to this.
+        // --- CONFIGURATION ---
+        // Ensure this is your correct n8n base URL
         const API_BASE_URL = 'https://eram-intl.app.n8n.cloud/webhook'; 
         let currentCollector = '';
 
@@ -98,8 +98,12 @@
 
             if (!currentCollector) {
                 alert('Error: No collector specified. Redirecting to login.');
-                window.location.href = 'window.location.href = 'https://jacey-pixel.github.io/-collections-system/login.html';
-        // Adjust to your actual login page URL
+                
+                // =========================================================
+                // THIS LINE HAS BEEN CORRECTED
+                // =========================================================
+                window.location.href = 'https://jacey-pixel.github.io/-collections-system/login.html';
+                
                 return;
             }
 
@@ -113,10 +117,9 @@
             loadDashboard();
         });
 
-        // --- CORRECTED DATA LOADING ---
+        // --- DATA LOADING ---
         async function loadDashboard() {
             try {
-                // Now uses the correct URL: .../webhook/client-data
                 const response = await fetch(`${API_BASE_URL}/client-data?collector=${currentCollector}`);
                 if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
                 const data = await response.json();
@@ -143,7 +146,7 @@
 
         function populateClientsTable(clients = []) {
             const tableBody = document.getElementById('clientsTableBody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            tableBody.innerHTML = '';
             if (clients.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No clients assigned.</td></tr>';
                 return;
@@ -166,26 +169,29 @@
             });
         }
 
-        // --- FORM HANDLING ---
+        // --- FORM HANDLING (These functions are correct) ---
+        function showFollowUpForm(clientCode, clientName) { /* ... code is correct ... */ }
+        function hideFollowUpForm() { /* ... code is correct ... */ }
+        function handleOutcomeChange() { /* ... code is correct ... */ }
+        async function handleFormSubmit(event) { /* ... code is correct ... */ }
+        function showNotification(message, type = 'success') { /* ... code is correct ... */ }
+        
+        // --- Functions continued for completeness... ---
         function showFollowUpForm(clientCode, clientName) {
             document.getElementById('formClientName').textContent = clientName;
             document.getElementById('formClientCode').value = clientCode;
             document.getElementById('followUpFormElement').reset();
-            handleOutcomeChange(); // Reset form visibility
+            handleOutcomeChange();
             document.getElementById('followUpModal').style.display = 'flex';
         }
-
         function hideFollowUpForm() {
             document.getElementById('followUpModal').style.display = 'none';
         }
-
         function handleOutcomeChange() {
             const outcome = document.getElementById('outcome').value;
             const nextFollowUpGroup = document.getElementById('nextFollowUpGroup');
             nextFollowUpGroup.style.display = (outcome === 'Payment Promised' || outcome === 'Partial Payment Promised') ? 'block' : 'none';
         }
-
-        // --- CORRECTED FORM SUBMISSION ---
         async function handleFormSubmit(event) {
             event.preventDefault();
             const form = event.target;
@@ -199,19 +205,15 @@
             data.client_name = document.getElementById('formClientName').textContent;
 
             try {
-                // Now uses the correct URL: .../webhook/follow-up
                 const response = await fetch(`${API_BASE_URL}/follow-up`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
-
                 if (response.ok) {
                     showNotification('Follow-up logged successfully!');
                     hideFollowUpForm();
-                    await loadDashboard(); // Refresh data after success
+                    await loadDashboard();
                 } else {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Failed to log follow-up.');
@@ -224,8 +226,6 @@
                 submitButton.textContent = 'Submit Follow-Up';
             }
         }
-
-        // --- UTILITY ---
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
