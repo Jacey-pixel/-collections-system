@@ -51,6 +51,15 @@
             gap: 20px;
         }
         
+        .supervisor-info {
+            font-size: 16px;
+            opacity: 0.9;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
         .last-updated {
             font-size: 14px;
             opacity: 0.9;
@@ -380,6 +389,23 @@
             font-weight: 500;
         }
         
+        .connection-error {
+            text-align: center;
+            padding: 40px;
+            color: #dc3545;
+            font-size: 16px;
+        }
+        
+        .connection-error .retry-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
         @media (max-width: 1200px) {
             .dashboard-sections {
                 grid-template-columns: 1fr;
@@ -416,6 +442,7 @@
         <div class="header-content">
             <h1>📊 Supervisor Dashboard</h1>
             <div class="header-info">
+                <div class="supervisor-info" id="supervisorInfo">Welcome, Supervisor</div>
                 <div class="last-updated" id="lastUpdated">Last updated: Loading...</div>
                 <button class="logout-btn" onclick="logout()">🚪 Logout</button>
             </div>
@@ -489,6 +516,9 @@
     <script>
         let supervisorId = '';
         let refreshInterval;
+        
+        // API endpoint - ensure this matches your n8n instance
+        const API_BASE_URL = 'https://eram-intl.app.n8n.cloud/webhook';
 
         // Initialize dashboard - synchronized with your existing system
         document.addEventListener('DOMContentLoaded', function() {
@@ -500,6 +530,9 @@
                 return;
             }
 
+            // Update supervisor info in header
+            document.getElementById('supervisorInfo').textContent = `Welcome, ${supervisorId}`;
+            
             // Load initial data using your existing API infrastructure
             loadDashboardData();
             
@@ -524,8 +557,17 @@
         async function loadSystemMetrics() {
             try {
                 // Uses your existing n8n API infrastructure
-                const response = await fetch(`https://jowan13.app.n8n.cloud/webhook/supervisor-data?supervisor=${supervisorId}`);
-                const data = await response.json();
+                const response = await fetch(`${API_BASE_URL}/supervisor-data?supervisor=${supervisorId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let data = {};
+                if (response.ok) {
+                    data = await response.json();
+                }
                 
                 const metricsHtml = `
                     <div class="metric-card portfolio">
@@ -576,15 +618,29 @@
                 document.getElementById('metricsGrid').innerHTML = metricsHtml;
             } catch (error) {
                 console.error('Error loading system metrics:', error);
-                document.getElementById('metricsGrid').innerHTML = '<div class="loading">⚠️ Error loading metrics - Check API connection</div>';
+                document.getElementById('metricsGrid').innerHTML = `
+                    <div class="connection-error">
+                        ⚠️ Unable to load metrics - API connection error
+                        <button class="retry-btn" onclick="loadSystemMetrics()">Retry</button>
+                    </div>
+                `;
             }
         }
 
         async function loadCollectorPerformance() {
             try {
                 // Integrates with your existing collector performance tracking
-                const response = await fetch(`https://jowan13.app.n8n.cloud/webhook/collector-performance?supervisor=${supervisorId}`);
-                const data = await response.json();
+                const response = await fetch(`${API_BASE_URL}/collector-performance?supervisor=${supervisorId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let data = {};
+                if (response.ok) {
+                    data = await response.json();
+                }
                 
                 let tableHtml = `
                     <table class="collector-table">
@@ -637,15 +693,29 @@
                 document.getElementById('collectorPerformance').innerHTML = tableHtml;
             } catch (error) {
                 console.error('Error loading collector performance:', error);
-                document.getElementById('collectorPerformance').innerHTML = '<div class="loading">⚠️ Error loading collector data</div>';
+                document.getElementById('collectorPerformance').innerHTML = `
+                    <div class="connection-error">
+                        ⚠️ Unable to load collector data
+                        <button class="retry-btn" onclick="loadCollectorPerformance()">Retry</button>
+                    </div>
+                `;
             }
         }
 
         async function loadSystemAlerts() {
             try {
                 // Synchronized with your existing escalation and alert systems
-                const response = await fetch(`https://jowan13.app.n8n.cloud/webhook/system-alerts?supervisor=${supervisorId}`);
-                const data = await response.json();
+                const response = await fetch(`${API_BASE_URL}/system-alerts?supervisor=${supervisorId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let data = {};
+                if (response.ok) {
+                    data = await response.json();
+                }
                 
                 let alertsHtml = '';
                 
@@ -687,7 +757,12 @@
                 document.getElementById('systemAlerts').innerHTML = alertsHtml;
             } catch (error) {
                 console.error('Error loading system alerts:', error);
-                document.getElementById('systemAlerts').innerHTML = '<div class="loading">⚠️ Error loading alerts</div>';
+                document.getElementById('systemAlerts').innerHTML = `
+                    <div class="connection-error">
+                        ⚠️ Unable to load alerts
+                        <button class="retry-btn" onclick="loadSystemAlerts()">Retry</button>
+                    </div>
+                `;
             }
         }
 
