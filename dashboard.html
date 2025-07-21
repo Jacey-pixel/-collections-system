@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collections Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        #loadingMessage {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+
+        #errorMessage {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            animation: slideIn 0.3s ease-out;
+            display: none;
+        }
+
+        #successMessage {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            animation: slideIn 0.3s ease-out;
+            display: none;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .kpi-value.danger {
+            color: #e74c3c;
+        }
+
+        .kpi-value.success {
+            color: #27ae60;
+        }
+
+        .section {
+            background: white;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            background-color: #34495e;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+        }
+
+        .client-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .client-table th,
+        .client-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .client-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .client-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .priority-high {
+            background-color: #ffebee;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .priority-medium {
+            background-color: #fff3e0;
+            border-left: 4px solid #f39c12;
+        }
+
+        .priority-low {
+            background-color: #e8f5e8;
+            border-left: 4px solid #27ae60;
+        }
+
+        .priority-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .priority-badge.high {
+            background-color: #e74c3c;
+        }
+
+        .priority-badge.medium {
+            background-color: #f39c12;
+        }
+
+        .priority-badge.low {
+            background-color: #27ae60;
+        }
+
+        .select-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .select-btn:hover {
+            background-color: #2980b9;
+        }
+
+        #followUpForm {
+            display: none;
+            background-color: #ecf0f1;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .submit-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #229954;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #95a5a6;
+        }
+
+        .cancel-btn {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background-color: #7f8c8d;
+        }
+
+        .cancel-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .client-table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Collections Dashboard</h1>
+        <div class="user-info">
+            <span id="collectorName">Loading...</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <div id="loadingMessage" class="loading">Loading dashboard data...</div>
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        <div id="successMessage" class="success" style="display: none;"></div>
+
+        <div id="dashboardContent" style="display: none;">
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-value" id="totalClients">0</div>
+                    <div class="kpi-label">Total Clients</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="totalOutstanding">0 SAR</div>
+                    <div class="kpi-label">Outstanding Amount</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value danger" id="totalOverdue">0 SAR</div>
+                    <div class="kpi-label">Overdue Amount</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value success" id="contactedToday">0</div>
+                    <div class="kpi-label">Contacted Today</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="performanceScore">0</div>
+                    <div class="kpi-label">Performance Score</div>
+                </div>
+            </div>
+
+            <!-- Today's Activity Summary -->
+            <div class="section">
+                <div class="section-header">Today's Activity Summary</div>
+                <div class="section-content">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="totalFollowUps">0</div>
+                            <div class="kpi-label">Total Follow-ups</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value success" id="promisesMade">0</div>
+                            <div class="kpi-label">Promises Made</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value success" id="paymentsReceived">0</div>
+                            <div class="kpi-label">Payments Received</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value danger" id="noResponseCount">0</div>
+                            <div class="kpi-label">No Response</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client List -->
+            <div class="section">
+                <div class="section-header">Your Clients (Priority Sorted)</div>
+                <div class="section-content">
+                    <table class="client-table">
+                        <thead>
+                            <tr>
+                                <th>Client ID</th>
+                                <th>Client Name</th>
+                                <th>Outstanding</th>
+                                <th>Overdue</th>
+                                <th>Priority</th>
+                                <th>Last Contact</th>
+                                <th>Phone</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientTableBody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Follow-up Form -->
+            <div id="followUpForm" class="follow-up-form">
+                <h3>Log Follow-up Activity</h3>
+                <form id="followUpFormElement">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="selectedClientId">Client ID</label>
+                            <input type="text" id="selectedClientId" name="client_id" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="selectedClientName">Client Name</label>
+                            <input type="text" id="selectedClientName" name="client_name" readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="outcome">Outcome</label>
+                            <select id="outcome" name="outcome" required>
+                                <option value="">Select Outcome</option>
+                                <option value="PROMISE_TO_PAY">Promise to Pay</option>
+                                <option value="PAYMENT_CONFIRMED">Payment Confirmed (Unverified)</option>
+                                <option value="OTHERS">Others</option>
+                                <option value="NO_RESPONSE">No Response</option>
+                                <option value="CALL_BACK_LATER">Call Back Later</option>
+                                <option value="DISPUTE">Dispute</option>
+                                <option value="UNREACHABLE">Unreachable</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amountDiscussed">Amount Discussed (SAR)</label>
+                            <input type="number" id="amountDiscussed" name="amount_discussed" min="0" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="promisedDate">Promised Date (if applicable)</label>
+                            <input type="date" id="promisedDate" name="promised_date">
+                        </div>
+                        <div class="form-group">
+                            <label for="callbackDate">Callback Date (if applicable)</label>
+                            <input type="date" id="callbackDate" name="callback_date">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" name="notes" placeholder="Enter detailed notes about the interaction..."></textarea>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="submit-btn">Log Follow-up</button>
+                        <button type="button" class="cancel-btn" onclick="cancelFollowUp()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Global variables
+    let dashboardData = null;
+    let userInfo = null;
+    let sessionToken = null;
+
+    // Call the initializer when the page content is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDashboard();
+
+        // NEW: Dynamic validation for "OTHERS" outcome
+        const outcomeSelect = document.getElementById('outcome');
+        const notesField = document.getElementById('notes');
+        const form = document.getElementById('followUpFormElement');
+
+        // Function to toggle notes requirement
+        function toggleNotesRequirement() {
+            if (outcomeSelect.value === 'OTHERS') {
+                notesField.required = true;
+                notesField.placeholder = 'Notes are required for "OTHERS" (please explain the outcome)';
+            } else {
+                notesField.required = false;
+                notesField.placeholder = 'Enter detailed notes about the interaction...';
+            }
+        }
+
+        // Listen for changes in the outcome dropdown
+        outcomeSelect.addEventListener('change', toggleNotesRequirement);
+
+        // Prevent form submission if notes are required but empty
+        form.addEventListener('submit', (event) => {
+            if (outcomeSelect.value === 'OTHERS' && !notesField.value.trim()) {
+                event.preventDefault();
+                alert('Please provide notes for the "OTHERS" outcome.');
+            }
+        });
+
+        // Initial check in case of pre-filled values
+        toggleNotesRequirement();
+    });
+
+    // Authentication and initialization
+    function initializeDashboard() {
+        console.log("Dashboard initializing: Performing authentication check...");
+
+        const token = localStorage.getItem('sessionToken');
+        const userInfoString = localStorage.getItem('userInfo');
+        let parsedUserInfo = null;
+
+        // Step 1: Try to parse the user info string safely
+        if (userInfoString) {
+            try {
+                parsedUserInfo = JSON.parse(userInfoString);
+            } catch (e) {
+                console.error("Authentication failed: User info in localStorage is corrupted. Clearing session.");
+                logout();
+                return;
+            }
+        }
+
+        // Step 2: Perform the validation check
+        if (!token || !parsedUserInfo || !parsedUserInfo.email) {
+            console.error("Authentication failed: Session token or user info is missing. Redirecting to login.");
+            logout();
+            return;
+        }
+
+        // Step 3: If validation passes, set the global variables and proceed
+        console.log("Authentication successful. Welcome,", parsedUserInfo.name);
+        userInfo = parsedUserInfo;
+        sessionToken = token;
+
+        // Now, proceed with loading the dashboard content
+        document.getElementById('collectorName').textContent = userInfo.name || userInfo.email;
+        loadDashboardData();
+        document.getElementById('followUpFormElement').addEventListener('submit', handleFollowUpSubmission);
+    }
+
+    // Load dashboard data from API
+    async function loadDashboardData() {
+        try {
+            showLoading(true);
+            const response = await fetch('https://eram-intl.app.n8n.cloud/webhook/collector-data', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`,
+                    'X-Collector-Email': userInfo.email,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with status ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                dashboardData = data;
+                populateDashboard(data);
+                showLoading(false);
+            } else {
+                showError(data.message || 'Failed to load dashboard data');
+                if (data.status === 401) {
+                    logout();
+                }
+            }
+        } catch (error) {
+            console.error('Dashboard loading error:', error);
+            showError('Failed to load dashboard data. Please try again.');
+            showLoading(false);
+        }
+    }
+
+    // Populate dashboard with data
+    function populateDashboard(data) {
+        document.getElementById('totalClients').textContent = data.kpis.total_clients;
+        document.getElementById('totalOutstanding').textContent = `${data.kpis.total_outstanding.toLocaleString()} SAR`;
+        document.getElementById('totalOverdue').textContent = `${data.kpis.total_overdue.toLocaleString()} SAR`;
+        document.getElementById('contactedToday').textContent = data.kpis.contacted_today;
+        document.getElementById('performanceScore').textContent = data.kpis.performance_score;
+        document.getElementById('totalFollowUps').textContent = data.today_activity.total;
+        document.getElementById('promisesMade').textContent = data.today_activity.promises;
+        document.getElementById('paymentsReceived').textContent = data.today_activity.payments;
+        document.getElementById('noResponseCount').textContent = data.today_activity.no_response;
+        populateClientTable(data.clients);
+        document.getElementById('dashboardContent').style.display = 'block';
+    }
+
+    // Populate client table
+    function populateClientTable(clients) {
+        const tbody = document.getElementById('clientTableBody');
+        tbody.innerHTML = '';
+        clients.forEach(client => {
+            const row = document.createElement('tr');
+            row.className = `priority-${client.priority.toLowerCase()}`;
+            const lastContact = client.last_contact ? `${client.last_contact.days_ago} days ago` : 'Never';
+            const phone = client.contact_phone ? `<a href="tel:${client.contact_phone}" style="color: #3498db;">${client.contact_phone}</a>` : 'N/A';
+            row.innerHTML = `
+                <td><strong>${client.client_id}</strong></td>
+                <td>${client.client_name}</td>
+                <td>${client.outstanding_amount.toLocaleString()} SAR</td>
+                <td style="color: #e74c3c; font-weight: bold;">${client.overdue_amount.toLocaleString()} SAR</td>
+                <td><span class="priority-badge ${client.priority.toLowerCase()}">${client.priority}</span></td>
+                <td>${lastContact}</td>
+                <td>${phone}</td>
+                <td><button class="select-btn" onclick="selectClient('${client.client_id}', '${client.client_name.replace(/'/g, "\\'")}')">Select</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Select client for follow-up
+    function selectClient(clientId, clientName) {
+        document.getElementById('selectedClientId').value = clientId;
+        document.getElementById('selectedClientName').value = clientName;
+        document.getElementById('followUpForm').style.display = 'block';
+        document.getElementById('followUpForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Cancel follow-up form
+    function cancelFollowUp() {
+        document.getElementById('followUpForm').style.display = 'none';
+        document.getElementById('followUpFormElement').reset();
+        
+        // Scroll back to client table
+        document.querySelector('.client-table').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Enhanced follow-up submission with loading states
+    async function handleFollowUpSubmission(e) {
+        e.preventDefault();
+        
+        // Get form elements
+        const submitBtn = document.querySelector('.submit-btn');
+        const cancelBtn = document.querySelector('.cancel-btn');
+        const form = document.getElementById('followUpFormElement');
+        
+        // Add loading state
+        const originalSubmitText = submitBtn.textContent;
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+        cancelBtn.disabled = true;
+        
+        // Collect form data
+        const formData = {
+            client_id: document.getElementById('selectedClientId').value,
+            client_name: document.getElementById('selectedClientName').value,
+            collector_email: userInfo.email,
+            outcome: document.getElementById('outcome').value,
+            notes: document.getElementById('notes').value,
+            amount_discussed: parseFloat(document.getElementById('amountDiscussed').value) || 0,
+            promised_date: document.getElementById('promisedDate').value,
+            callback_date: document.getElementById('callbackDate').value
+        };
+        
+        console.log('Submitting follow-up data:', formData);
+        
+        try {
+            const response = await fetch('https://eram-intl.app.n8n.cloud/webhook/log-followup', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${sessionToken}` 
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            console.log('Response status:', response.status);
+            
+            const result = await response.json();
+            console.log('Response data:', result);
+            
+            if (response.ok && result.success) {
+                const reminders = result.data?.reminders_created || 0;
+                showSuccess(`✅ Follow-up recorded successfully! ${reminders} reminders created.`);
+                
+                // Hide form and reset
+                cancelFollowUp();
+                
+                // Refresh dashboard data
+                loadDashboardData();
+                
+            } else {
+                showError(`❌ ${result.message || 'Failed to record follow-up'}`);
+            }
+            
+        } catch (error) {
+            console.error('Follow-up submission error:', error);
+            showError('❌ Network error. Please check your connection and try again.');
+        } finally {
+            // Always restore button state
+            submitBtn.textContent = originalSubmitText;
+            submitBtn.disabled = false;
+            cancelBtn.disabled = false;
+        }
+    }
+
+    // Logout function
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'https://jacey-pixel.github.io/-collections-system/login.html';
+    }
+
+    // Utility functions
+    function showLoading(show) { 
+        document.getElementById('loadingMessage').style.display = show ? 'block' : 'none'; 
+    }
+
+    function showError(message) {
+        console.log('Error:', message);
+        const errorDiv = document.getElementById('errorMessage');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // Scroll to error message
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Hide after 6 seconds
+            setTimeout(() => { 
+                errorDiv.style.display = 'none'; 
+            }, 6000);
+        }
+    }
+
+    function showSuccess(message) {
+        console.log('Success:', message);
+        const successDiv = document.getElementById('successMessage');
+        if (successDiv) {
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            
+            // Scroll to success message
+            successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Hide after 7 seconds
+            setTimeout(() => { 
+                successDiv.style.display = 'none'; 
+            }, 7000);
+        }
+    }
+
+    // Auto-refresh dashboard every 5 minutes
+    setInterval(loadDashboardData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
+
