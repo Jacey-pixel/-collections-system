@@ -1,3 +1,8 @@
+You've provided the full HTML structure and asked to replace the existing `buildCollectorTable` function with the updated logic that handles the **real-time activity status** (Green/Yellow/Red dot).
+
+Here is the **complete and updated HTML code** with the corrected `buildCollectorTable` function integrated exactly as requested.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,8 +18,8 @@
             --success: #2e7d32;
             --bg-light:#f8f9fa;
         }
-        body       { margin: 0; font-family: Arial, sans-serif; background: var(--bg-light); }
-        header     { background: var(--primary); color: #fff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        body        { margin: 0; font-family: Arial, sans-serif; background: var(--bg-light); }
+        header      { background: var(--primary); color: #fff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
         h1, h2, h3 { margin: 0; }
         .logout-btn { background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
         .logout-btn:hover { background: #b71c1c; }
@@ -31,7 +36,7 @@
         table      { width:100%; border-collapse: collapse; margin-top:.75rem; }
         th,td      { border:1px solid #ddd; padding:.5rem .6rem; font-size:.85rem; text-align: left;}
         th         { background:#f2f2f2; }
-        #loading    { text-align:center; padding:2rem; font-size:1.1rem; color:#666; }
+        #loading   { text-align:center; padding:2rem; font-size:1.1rem; color:#666; }
         .user-info  { display: flex; align-items: center; gap: 1rem; }
         .alert-row.high    { background:#fff3e0; }
         .alert-row.critical{ background:#ffebee; }
@@ -57,10 +62,8 @@
     </header>
 
     <div class="wrapper">
-        <!-- KPI CARDS -->
         <div id="kpiSection" class="kpi-grid" style="display:none;"></div>
 
-        <!-- TABS -->
         <div class="tabs">
             <div id="alertsTab" class="tab-btn active" onclick="switchTab('alerts')">System Alerts</div>
             <div id="collectorsTab" class="tab-btn" onclick="switchTab('collectors')">Collector Performance</div>
@@ -68,7 +71,6 @@
             <div id="reportingTab" class="tab-btn" onclick="switchTab('reporting')">Monthly Reporting</div>
         </div>
 
-        <!-- ALERT SECTION -->
         <div id="alertsSection" class="section active">
             <h3>🔔 Active Alerts</h3>
             <table id="alertsTable">
@@ -77,7 +79,6 @@
             </table>
         </div>
 
-        <!-- COLLECTOR PERFORMANCE SECTION -->
         <div id="collectorsSection" class="section">
             <h3>👤 Collector Performance</h3>
             <table id="collectorsTable">
@@ -87,7 +88,7 @@
                         <th>Clients</th>
                         <th>Reference Portfolio (SAR)</th>
                         <th>Portfolio (SAR)</th>
-                        <th>YTD Collections (SAR)</th>  <!-- NEW YTD HEADER -->
+                        <th>YTD Collections (SAR)</th>
                         <th>Follow-ups Today</th>
                         <th>Payments Today</th>
                         <th>Promises Made</th>
@@ -99,7 +100,6 @@
             </table>
         </div>
 
-        <!-- SYSTEM HEALTH SECTION -->
         <div id="systemSection" class="section">
             <h3>⚙️ System Health</h3>
             <div class="kpi-grid">
@@ -110,7 +110,6 @@
             </div>
         </div>
 
-        <!-- MONTHLY REPORTING SECTION -->
         <div id="reportingSection" class="section">
             <h3>📈 Monthly Collections Reporting</h3>
             <div class="reporting-grid">
@@ -245,15 +244,65 @@
         });
     }
 
-    function buildCollectorTable(collectorPerformance){
+    // --- UPDATED buildCollectorTable FUNCTION (Start) ---
+    function buildCollectorTable(collectorPerformance) {
         const body = document.querySelector('#collectorsTable tbody');
         body.innerHTML = '';
-        if (!collectorPerformance) { body.innerHTML = '<tr><td colspan="10" style="text-align:center;">No collector data available</td></tr>'; return; }
-        const collectors = Object.entries(collectorPerformance).sort(([,a], [,b]) => (b.outstanding_amount || 0) - (a.outstanding_amount || 0));
+        
+        if (!collectorPerformance) { 
+            body.innerHTML = '<tr><td colspan="10" style="text-align:center;">No collector data available</td></tr>'; 
+            return; 
+        }
+
+        // Sort: Active users first (minutes < 30), then by Outstanding Amount
+        const collectors = Object.entries(collectorPerformance).sort(([, a], [, b]) => {
+            const aActive = (a.minutes_since_activity || 9999) < 30 ? 1 : 0;
+            const bActive = (b.minutes_since_activity || 9999) < 30 ? 1 : 0;
+            
+            // Primary Sort: Active Status (descending)
+            if (bActive - aActive !== 0) return bActive - aActive; 
+            
+            // Secondary Sort: Outstanding Amount (descending)
+            return (b.outstanding_amount || 0) - (a.outstanding_amount || 0);
+        });
+
         collectors.forEach(([name, stats]) => {
             const tr = document.createElement('tr');
+
+            // Logic to choose the Status Icon and Text using 'minutes_since_activity'
+            let minutes = stats.minutes_since_activity;
+            let statusIcon = '🔴'; // Default offline
+            let activityText = stats.last_activity || 'Never'; // Fallback string from backend
+
+            if (minutes !== undefined && minutes !== null && minutes < 999999) {
+                if (minutes < 5) {
+                    statusIcon = '🟢'; // Online (Active < 5 mins)
+                    activityText = 'Just now';
+                } else if (minutes < 30) {
+                    statusIcon = '🟢'; // Online (Active < 30 mins)
+                    activityText = `${minutes} mins ago`;
+                } else if (minutes < 60) {
+                    statusIcon = '🟡'; // Away (< 1 hour)
+                    activityText = `${minutes} mins ago`;
+                } else if (minutes < 1440) {
+                    statusIcon = '⚪'; // Offline today
+                    activityText = `${Math.floor(minutes/60)} hrs ago`;
+                } else {
+                    statusIcon = '🔴'; // Offline long time
+                    activityText = `${Math.floor(minutes/1440)} days ago`;
+                }
+            }
+            
+            // Optional: Highlight the row for active collectors
+            if (minutes < 30) {
+                tr.style.backgroundColor = '#e8f5e9'; // Light green background
+            }
+
+
             tr.innerHTML = `
-                <td>${name}</td>
+                <td>
+                    ${statusIcon} <strong>${name}</strong>
+                </td>
                 <td>${stats.total_clients || 0}</td>
                 <td>${(stats.reference_portfolio || 0).toLocaleString('en-US')} SAR</td>
                 <td>${(stats.outstanding_amount || 0).toLocaleString('en-US')} SAR</td>
@@ -261,12 +310,14 @@
                 <td>${stats.follow_ups_today || 0}</td>
                 <td>${stats.payments_today || 0}</td>
                 <td>${stats.promises_today || 0}</td>
-                <td>${stats.logged_in_today ? '✅' : '❌'}</td>
-                <td>${stats.last_activity < 999 ? stats.last_activity + ' days ago' : 'Never'}</td>
+                <td>${stats.logged_in_today ? 'Yes' : 'No'}</td>
+                <td>${activityText}</td>
             `;
             body.appendChild(tr);
         });
     }
+    // --- UPDATED buildCollectorTable FUNCTION (End) ---
+
 
     function buildSystemHealth(systemHealth) {
         if (!systemHealth) return;
@@ -360,10 +411,12 @@
         window.location.href = CONFIG.LOGIN_URL;
     }
 
-    setInterval(loadDashboard, 2 * 60 * 1000);
+    // Set interval to refresh dashboard every 2 minutes
+    setInterval(loadDashboard, 2 * 60 * 1000); 
     document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
+```
 
 
