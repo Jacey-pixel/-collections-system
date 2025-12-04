@@ -543,6 +543,28 @@
         toggleNotesRequirement();
     });
 
+    // --- AUTOMATIC 5 PM LOGOUT FEATURE ---
+    function startDailyLogoutScheduler() {
+        // Check immediately when the function runs
+        checkTimeAndLogout();
+        
+        // Check repeatedly every 1 minute (60000 ms)
+        setInterval(checkTimeAndLogout, 60000);
+    }
+
+    function checkTimeAndLogout() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // If it is 5 PM (17:00) or later, log out
+        if (currentHour >= 17) {
+            console.log("Business hours ended (5 PM). Logging out...");
+            alert("It is 5:00 PM. The system is now closed for the day.");
+            logout();
+        }
+    }
+    // -------------------------------------
+
     // Authentication and initialization
     function initializeDashboard() {
         console.log("Dashboard initializing: Performing authentication check...");
@@ -573,6 +595,10 @@
         console.log("Authentication successful. Welcome,", parsedUserInfo.name);
         userInfo = parsedUserInfo;
         sessionToken = token;
+
+        // --- INITIALIZE 5 PM LOGOUT ---
+        startDailyLogoutScheduler();
+        // ------------------------------
 
         // Now, proceed with loading the dashboard content
         document.getElementById('collectorName').textContent = userInfo.name || userInfo.email;
@@ -790,4 +816,6 @@
     </script>
 </body>
 </html>
+
+
 
