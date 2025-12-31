@@ -520,7 +520,7 @@
 
         // Function to toggle notes requirement
         function toggleNotesRequirement() {
-            if (outcomeSelect.value === 'OTHERS') {
+            if (outcomeSelect.value === 'OTHERS' || outcomeSelect.value === 'PHYSICAL_VISIT') {
                 notesField.required = true;
                 notesField.placeholder = 'Notes are required for "OTHERS" (please explain the outcome)';
             } else {
@@ -817,6 +817,7 @@
     </script>
 </body>
 </html>
+
 
 
 
