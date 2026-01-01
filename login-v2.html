@@ -18,154 +18,65 @@
     button:hover{background:#5a6fd8}
     button:disabled{background:#ccc;cursor:not-allowed}
     .error{display:none;background:#fee2e2;color:#dc2626;padding:14px;border-radius:5px;font-size:14px;margin-top:15px}
-    .loading{display:none;text-align:center;color:#667eea;margin-top:15px;font-size:14px}
     .success{display:none;background:#e8f5e8;color:#2e7d32;padding:14px;border-radius:5px;font-size:14px;margin-top:15px}
+    .loading{display:none;text-align:center;color:#667eea;margin-top:15px;font-size:14px}
 </style>
 </head>
 <body>
     <div class="card">
         <h1>Collections System</h1>
         <p class="sub">Login to access your dashboard</p>
-
         <form id="loginForm">
             <div class="field">
                 <label for="email">Email</label>
                 <input id="email" name="email" type="email" autocomplete="username" required>
             </div>
-
             <div class="field">
                 <label for="password">Password</label>
                 <input id="password" name="password" type="password" autocomplete="current-password" required>
             </div>
-
             <button id="loginBtn" type="submit">Login</button>
-
             <div id="errorBox" class="error"></div>
             <div id="successBox" class="success"></div>
             <div id="loadingBox" class="loading">Authenticating…</div>
         </form>
     </div>
-
 <script>
 (() => {
-    const form       = document.getElementById('loginForm');
-    const btn        = document.getElementById('loginBtn');
-    const errBox     = document.getElementById('errorBox');
+    const form = document.getElementById('loginForm');
+    const btn = document.getElementById('loginBtn');
+    const errBox = document.getElementById('errorBox');
     const successBox = document.getElementById('successBox');
-    const loadBox    = document.getElementById('loadingBox');
-    const apiURL     = 'https://eram-intl.app.n8n.cloud/webhook/secure-login-v2';
-    
-    // --- NEW --- Define the base URL for your project
+    const loadBox = document.getElementById('loadingBox');
+    const apiURL = 'https://eram-intl.app.n8n.cloud/webhook/login';
     const baseURL = 'https://jacey-pixel.github.io/-collections-system/';
-
-    const showError = msg => { 
-        errBox.textContent = msg; 
-        errBox.style.display = 'block';
-        successBox.style.display = 'none';
-        console.error('Login Error:', msg);
-    };
-
-    const showSuccess = msg => { 
-        successBox.textContent = msg; 
-        successBox.style.display = 'block';
-        errBox.style.display = 'none';
-        console.log('Login Success:', msg);
-    };
-
-    const hideMessages = () => { 
-        errBox.style.display = 'none'; 
-        successBox.style.display = 'none';
-    };
-
-    ['email','password'].forEach(id =>
-        document.getElementById(id).addEventListener('input', hideMessages));
 
     form.addEventListener('submit', async e => {
         e.preventDefault();
-        hideMessages();
-
-        const email    = form.email.value.trim().toLowerCase();
-        const password = form.password.value.trim();
-
-        if (!email || !password) return showError('Please enter both email and password.');
-
-        btn.disabled = true;  
-        loadBox.style.display = 'block';
+        errBox.style.display = 'none'; successBox.style.display = 'none';
+        btn.disabled = true; loadBox.style.display = 'block';
 
         try {
-            console.log('Sending login request to:', apiURL);
-            
             const res = await fetch(apiURL, {
-                method : 'POST',
-                headers: { 'Content-Type':'application/json' },
-                body   : JSON.stringify({ email, password })
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: form.email.value.trim().toLowerCase(), password: form.password.value.trim() })
             });
-
-            console.log('Response status:', res.status);
-            console.log('Response ok:', res.ok);
-
-            if (!res.ok) throw new Error(`Server responded ${res.status}`);
-
+            if (!res.ok) throw new Error(`Server error: ${res.status}`);
+            
             const data = await res.json();
-            console.log('Response data:', data);
+            if (!data.success) throw new Error(data.message || 'Invalid credentials');
 
-            if (!data.success) {
-                throw new Error(data.message || 'Invalid credentials');
-            }
+            localStorage.setItem('sessionToken', data.token);
+            localStorage.setItem('userInfo', JSON.stringify({ name: data.name, type: data.type, email: form.email.value.trim().toLowerCase() }));
 
-            /* ----- SUCCESS FLOW ----- */
-            showSuccess('Login successful! Redirecting...');
-            
-            localStorage.setItem('sessionToken', data.userInfo.sessionToken);
-            localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+            successBox.textContent = 'Login successful! Redirecting...';
+            successBox.style.display = 'block';
 
-            // --- FIXED REDIRECTION LOGIC ---
-            // Get the relative page path from the n8n response (e.g., '/dashboard.html')
-            const targetPage = data.redirectUrl.startsWith('/') 
-                ? data.redirectUrl.substring(1) 
-                : data.redirectUrl;
-            
-            // Construct the full, correct URL by combining the base URL and the target page
-            const finalRedirectUrl = baseURL + targetPage;
-            
-            console.log('Redirecting to:', finalRedirectUrl);
-            
-            setTimeout(() => {
-                window.location.href = finalRedirectUrl;
-            }, 1000);
-
-        }
-        catch (err) { 
-            console.error('Login process failed:', err);
-            showError(err.message); 
-        }
-        finally { 
-            btn.disabled = false; 
-            loadBox.style.display = 'none'; 
-        }
-    });
-
-    // --- FIXED SESSION RESUME LOGIC ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const sessionToken = localStorage.getItem('sessionToken');
-        const userInfoString = localStorage.getItem('userInfo');
-        
-        if (sessionToken && userInfoString) {
-            const userInfo = JSON.parse(userInfoString);
-
-            // Determine the correct dashboard based on stored user type
-            const targetPage = userInfo.type === 'SUPERVISOR' 
-                ? 'supervisor-dashboard.html' 
-                : 'dashboard.html';
-                
-            const finalRedirectUrl = baseURL + targetPage;
-
-            showSuccess('Active session found. Redirecting to your dashboard...');
-            
-            setTimeout(() => {
-                window.location.href = finalRedirectUrl;
-            }, 1000);
-        }
+            const target = data.type === 'SUPERVISOR' ? 'supervisor-dashboard.html' : 'dashboard.html';
+            setTimeout(() => { window.location.href = baseURL + target; }, 1200);
+        } catch (err) { errBox.textContent = err.message; errBox.style.display = 'block'; }
+        finally { btn.disabled = false; loadBox.style.display = 'none'; }
     });
 })();
 </script>
