@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <title>Supervisor Dashboard – Eram International</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Force browser to bypass cache for the dashboard to prevent old 404 views -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -78,7 +77,16 @@
         <div id="alertsSection" class="section active">
             <h3>🔔 Active Alerts</h3>
             <table id="alertsTable">
-                <thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>Client/Collector</th><th>Financial Impact</th><th>Action Required</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Client/Collector</th>
+                        <th>Financial Impact</th>
+                        <th>Action Required</th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -108,10 +116,22 @@
         <div id="systemSection" class="section">
             <h3>⚙️ System Health</h3>
             <div class="kpi-grid">
-                <div class="kpi-box"><div class="kpi-label">Active Collectors</div><div class="kpi-value" id="activeCollectors">-</div></div>
-                <div class="kpi-box"><div class="kpi-label">Pending Reminders</div><div class="kpi-value" id="pendingReminders">-</div></div>
-                <div class="kpi-box"><div class="kpi-label">System Efficiency</div><div class="kpi-value" id="systemEfficiency">-</div></div>
-                <div class="kpi-box"><div class="kpi-label">Total Follow-ups Today</div><div class="kpi-value" id="totalFollowupsToday">-</div></div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Active Collectors</div>
+                    <div class="kpi-value" id="activeCollectors">-</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Pending Reminders</div>
+                    <div class="kpi-value" id="pendingReminders">-</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">System Efficiency</div>
+                    <div class="kpi-value" id="systemEfficiency">-</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Total Follow-ups Today</div>
+                    <div class="kpi-value" id="totalFollowupsToday">-</div>
+                </div>
             </div>
         </div>
 
@@ -165,7 +185,8 @@
         
         try {
             const parsedUserInfo = JSON.parse(userInfo);
-            document.getElementById('supervisorName').textContent = parsedUserInfo.name || parsedUserInfo.email;
+            document.getElementById('supervisorName').textContent =
+                parsedUserInfo.name || parsedUserInfo.email;
             return true;
         } catch (error) { 
             redirectToLogin(); 
@@ -199,7 +220,7 @@
                 cache: 'no-store'
             });
 
-            if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             
             buildKPIs(data.kpis);
@@ -224,11 +245,10 @@
         if(!kpis) return;
 
         const entries = [
-            {label: 'Total Portfolio', val: (kpis.total_portfolio || 0).toLocaleString() + ' SAR'},
-            {label: 'Total Overdue', val: (kpis.total_overdue || 0).toLocaleString() + ' SAR', cls: 'bg-danger'},
+            {label: 'Total Portfolio',    val: (kpis.total_portfolio || 0).toLocaleString() + ' SAR'},
+            {label: 'Total Overdue',      val: (kpis.total_overdue || 0).toLocaleString() + ' SAR', cls: 'bg-danger'},
             {label: 'High Value Clients', val: kpis.high_value_clients || 0, cls: 'bg-warning'},
-            // REAL amount from backend (SAR)
-            {label: 'Payments Today', val: (kpis.payments_today || 0).toLocaleString() + ' SAR', cls: 'bg-success'}
+            {label: 'Payments Today',     val: (kpis.payments_today || 0).toLocaleString() + ' SAR', cls: 'bg-success'}
         ];
 
         entries.forEach(e => {
@@ -247,15 +267,22 @@
         const body = document.querySelector('#alertsTable tbody');
         body.innerHTML = '';
         if (!alerts || !alerts.length) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center;">No active alerts 🎉</td></tr>';
+            body.innerHTML =
+                '<tr><td colspan="6" style="text-align:center;">No active alerts 🎉</td></tr>';
             return;
         }
         alerts.forEach(alert => {
             const tr = document.createElement('tr');
-            tr.className = alert.severity === 'CRITICAL' ? 'alert-row critical'
-                : alert.severity === 'HIGH' ? 'alert-row high' : '';
-            const badge = alert.severity === 'CRITICAL' ? 'bg-danger'
-                : alert.severity === 'HIGH' ? 'bg-warning' : 'bg-success';
+            tr.className = alert.severity === 'CRITICAL'
+                ? 'alert-row critical'
+                : alert.severity === 'HIGH'
+                ? 'alert-row high'
+                : '';
+            const badge = alert.severity === 'CRITICAL'
+                ? 'bg-danger'
+                : alert.severity === 'HIGH'
+                ? 'bg-warning'
+                : 'bg-success';
             tr.innerHTML = `
                 <td><span class="badge ${badge}">${alert.severity}</span></td>
                 <td>${alert.type.replace(/_/g, ' ')}</td>
@@ -274,8 +301,8 @@
 
         Object.entries(perf).forEach(([name, stats]) => {
             const tr = document.createElement('tr');
-            const icon = (stats.minutes_since_activity || 999) < 30 ? '🟢' : '🔴';
-            const paymentsAmt = (stats.payments_today_amount || 0).toLocaleString();
+            const icon = stats.logged_in_today ? '🟢' : '🔴';
+            const paymentsAmt   = (stats.payments_today_amount || 0).toLocaleString();
             const paymentsCount = stats.payments_today_count || 0;
 
             tr.innerHTML = `
@@ -301,9 +328,9 @@
         document.getElementById('pendingReminders').textContent =
             sh.total_reminders_pending;
         document.getElementById('systemEfficiency').textContent =
-            (typeof sh.system_efficiency === 'number'
+            typeof sh.system_efficiency === 'number'
                 ? sh.system_efficiency.toString() + '%'
-                : '-');
+                : '-';
         document.getElementById('totalFollowupsToday').textContent =
             sh.total_follow_ups_today;
     }
@@ -311,7 +338,6 @@
     function buildMonthlyReporting(data) {
         if (!data) return;
 
-        // Overall
         const overallBody = document.querySelector('#overallMonthlyTable tbody');
         overallBody.innerHTML = '';
         Object.keys(data.overall || {}).sort().reverse().forEach(m => {
@@ -322,28 +348,24 @@
                 </tr>`;
         });
 
-        // By collector
         const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
         collectorBody.innerHTML = '';
 
         const byCollector = data.by_collector || {};
         const monthsSet = new Set();
-
         Object.values(byCollector).forEach(monthsObj => {
             Object.keys(monthsObj || {}).forEach(m => monthsSet.add(m));
         });
         const sortedMonths = Array.from(monthsSet).sort().reverse();
 
         Object.entries(byCollector).forEach(([collectorName, monthsObj]) => {
-            let breakdownParts = [];
+            const parts = [];
             sortedMonths.forEach(m => {
                 if (monthsObj[m]) {
-                    breakdownParts.push(
-                        `${m}: ${monthsObj[m].total.toLocaleString()} SAR`
-                    );
+                    parts.push(`${m}: ${monthsObj[m].total.toLocaleString()} SAR`);
                 }
             });
-            const breakdown = breakdownParts.length ? breakdownParts.join(' | ') : '-';
+            const breakdown = parts.length ? parts.join(' | ') : '-';
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${collectorName}</td><td>${breakdown}</td>`;
             collectorBody.appendChild(tr);
@@ -359,6 +381,4 @@
     </script>
 </body>
 </html>
-
-
 
