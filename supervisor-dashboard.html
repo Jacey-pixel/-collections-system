@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Supervisor Dashboard – Collections Management System</title>
+    <title>Supervisor Dashboard – Eram International</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Prevent GitHub Pages 404/Caching issues on redirect -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -140,7 +140,8 @@
     <script>
     const CONFIG = {
         API_URL: 'https://eram-intl.app.n8n.cloud/webhook/supervisor-data',
-        LOGIN_URL: 'https://jacey-pixel.github.io/-collections-system/supervisor-login.html',
+        // UPDATED: Points to the new repository name
+        LOGIN_URL: 'https://jacey-pixel.github.io/eram-collections-system/supervisor-login.html',
         TOKEN_KEY: 'supervisorToken',
         USER_INFO_KEY: 'supervisorInfo'
     };
@@ -166,6 +167,7 @@
     function redirectToLogin(message) {
         localStorage.removeItem(CONFIG.TOKEN_KEY);
         localStorage.removeItem(CONFIG.USER_INFO_KEY);
+        // Use replace to prevent "Back" button loops
         window.location.replace(CONFIG.LOGIN_URL);
     }
 
@@ -321,6 +323,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
