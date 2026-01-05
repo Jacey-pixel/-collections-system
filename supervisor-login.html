@@ -5,158 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supervisor Login - Collections Management System</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .login-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            max-width: 450px;
-            width: 100%;
-            position: relative;
-        }
-
-        .login-header {
-            background: linear-gradient(135deg, #c0392b 0%, #8e44ad 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-            position: relative;
-        }
-
-        .login-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .login-header p {
-            font-size: 16px;
-            opacity: 0.9;
-            position: relative;
-            z-index: 1;
-        }
-
-        .supervisor-badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .login-form {
-            padding: 40px 30px;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-            position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e1e8ed;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #c0392b;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
-        }
-
-        .login-button {
-            width: 100%;
-            background: linear-gradient(135deg, #c0392b 0%, #8e44ad 100%);
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
+        /* CSS remains exactly as you provided */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-container { background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); overflow: hidden; max-width: 450px; width: 100%; position: relative; }
+        .login-header { background: linear-gradient(135deg, #c0392b 0%, #8e44ad 100%); color: white; padding: 40px 30px; text-align: center; position: relative; }
+        .login-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; position: relative; z-index: 1; }
+        .login-header p { font-size: 16px; opacity: 0.9; position: relative; z-index: 1; }
+        .supervisor-badge { display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-top: 15px; border: 1px solid rgba(255, 255, 255, 0.3); }
+        .login-form { padding: 40px 30px; }
+        .form-group { margin-bottom: 25px; position: relative; }
+        .form-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 14px; }
+        .form-group input { width: 100%; padding: 15px 20px; border: 2px solid #e1e8ed; border-radius: 12px; font-size: 16px; transition: all 0.3s ease; background: #f8f9fa; }
+        .form-group input:focus { outline: none; border-color: #c0392b; background: white; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1); }
+        .login-button { width: 100%; background: linear-gradient(135deg, #c0392b 0%, #8e44ad 100%); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; }
         .login-button:disabled { opacity: 0.7; cursor: not-allowed; }
-
-        .loading-spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-
+        .loading-spinner { display: none; width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: white; animation: spin 1s linear infinite; margin-right: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .error-message, .success-message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-            font-size: 14px;
-        }
-
+        .error-message, .success-message { padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; font-size: 14px; }
         .error-message { background: #ffebee; color: #c62828; border-left: 4px solid #f44336; }
         .success-message { background: #e8f5e8; color: #2e7d32; border-left: 4px solid #4caf50; }
-
-        .collector-login-link {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e1e8ed;
-        }
-
+        .collector-login-link { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e1e8ed; }
         .collector-login-link a { color: #6c757d; text-decoration: none; font-size: 14px; }
-        
-        .system-status {
-            position: fixed; top: 20px; right: 20px;
-            background: white; padding: 10px; border-radius: 8px;
-            font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex; align-items: center; gap: 8px;
-        }
-
+        .system-status { position: fixed; top: 20px; right: 20px; background: white; padding: 10px; border-radius: 8px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; }
         .status-indicator { width: 8px; height: 8px; border-radius: 50%; background: #28a745; }
     </style>
 </head>
@@ -177,7 +48,6 @@
             <div class="error-message" id="errorMessage">
                 <strong>Error:</strong> <span id="errorText"></span>
             </div>
-
             <div class="success-message" id="successMessage">
                 <strong>Success:</strong> <span id="successText"></span>
             </div>
@@ -187,12 +57,10 @@
                     <label for="email">Supervisor Email</label>
                     <input type="email" id="email" name="email" required placeholder="Enter supervisor email">
                 </div>
-
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required placeholder="Enter password">
                 </div>
-
                 <button type="submit" class="login-button" id="loginButton">
                     <div class="loading-spinner" id="loadingSpinner"></div>
                     <span id="buttonText">Access Supervisor Dashboard</span>
@@ -206,11 +74,10 @@
     </div>
 
     <script>
-        // ✅ CRITICAL CONFIGURATION: Full URLs only
         const CONFIG = {
             API_URL: 'https://eram-intl.app.n8n.cloud/webhook/supervisor-login',
             BASE_REPO: 'https://jacey-pixel.github.io/eram-collections-system',
-            TIMEOUT: 8 * 60 * 60 * 1000 // 8 Hours
+            TIMEOUT: 8 * 60 * 60 * 1000 
         };
 
         const form = document.getElementById('supervisorLoginForm');
@@ -218,21 +85,20 @@
         const spinner = document.getElementById('loadingSpinner');
         const btnText = document.getElementById('buttonText');
 
-        // Check if already logged in
         window.onload = () => {
             const info = localStorage.getItem('supervisorInfo');
             if (info) {
-                const data = JSON.parse(info);
-                if (new Date() - new Date(data.loginTime) < CONFIG.TIMEOUT) {
-                    window.location.href = `${CONFIG.BASE_REPO}/supervisor-dashboard.html?v=${Date.now()}`;
-                }
+                try {
+                    const data = JSON.parse(info);
+                    if (new Date() - new Date(data.loginTime) < CONFIG.TIMEOUT) {
+                        window.location.href = `${CONFIG.BASE_REPO}/supervisor-dashboard.html?v=${Date.now()}`;
+                    }
+                } catch(e) { localStorage.clear(); }
             }
         };
 
         form.onsubmit = async (e) => {
             e.preventDefault();
-            
-            // UI Loading State
             loginBtn.disabled = true;
             spinner.style.display = 'inline-block';
             btnText.textContent = 'Authenticating...';
@@ -250,28 +116,28 @@
 
                 const result = await response.json();
 
-                if (result.success) {
-                    // Save Session
+                // ✅ SAFE DATA CHECK: Verify success AND existence of userInfo
+                if (result.success && result.userInfo) {
                     const sessionData = {
                         ...result.userInfo,
                         loginTime: new Date().toISOString()
                     };
-                    localStorage.setItem('supervisorToken', result.userInfo.sessionToken);
+                    
+                    // Safe access to the token
+                    const token = result.userInfo.sessionToken || "NO_TOKEN_RETURNED";
+                    
+                    localStorage.setItem('supervisorToken', token);
                     localStorage.setItem('supervisorInfo', JSON.stringify(sessionData));
 
                     document.getElementById('successText').textContent = "Login Successful! Redirecting...";
                     document.getElementById('successMessage').style.display = 'block';
 
-                    // ✅ REDIRECT: Use n8n provided URL or fallback to absolute path
-                    // Added a cache-buster (?v=) to ensure we skip any 404 cache
                     const finalUrl = result.redirectUrl || `${CONFIG.BASE_REPO}/supervisor-dashboard.html?v=${Date.now()}`;
-                    
-                    setTimeout(() => {
-                        window.location.href = finalUrl;
-                    }, 1200);
+                    setTimeout(() => { window.location.href = finalUrl; }, 1200);
 
                 } else {
-                    throw new Error(result.message || 'Invalid Credentials');
+                    // This catches cases where success is false OR userInfo is missing
+                    throw new Error(result.message || 'Access Denied: User info not received from server.');
                 }
             } catch (err) {
                 document.getElementById('errorText').textContent = err.message;
@@ -284,5 +150,6 @@
     </script>
 </body>
 </html>
+
 
 
