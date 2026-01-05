@@ -75,7 +75,6 @@
             <div id="reportingTab" class="tab-btn" onclick="switchTab('reporting')">Monthly Reporting</div>
         </div>
 
-        <!-- Section content remains same as your original design -->
         <div id="alertsSection" class="section active">
             <h3>🔔 Active Alerts</h3>
             <table id="alertsTable">
@@ -95,7 +94,8 @@
                         <th>Outstanding (SAR)</th>
                         <th>YTD Collections</th>
                         <th>Follow-ups</th>
-                        <th>Payments Today</th>
+                        <th>Payments Today (Amt)</th>
+                        <th>Payments Today (Count)</th>
                         <th>Promises</th>
                         <th>Logged-in</th>
                         <th>Last Activity</th>
@@ -139,7 +139,6 @@
     </div>
 
     <script>
-    // ✅ CONFIGURATION: Using Absolute URLs for the Repository Subdirectory
     const CONFIG = {
         API_URL: 'https://eram-intl.app.n8n.cloud/webhook/supervisor-data',
         BASE_URL: 'https://jacey-pixel.github.io/eram-collections-system',
@@ -148,7 +147,6 @@
         USER_INFO_KEY: 'supervisorInfo'
     };
 
-    // Navigation logic
     function switchTab(target){
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(target + 'Tab').classList.add('active');
@@ -156,7 +154,6 @@
         document.getElementById(target + 'Section').classList.add('active');
     }
 
-    // ✅ SESSION SECURITY: Forces absolute path redirect on fail
     function validateSession() {
         const token = localStorage.getItem(CONFIG.TOKEN_KEY);
         const userInfo = localStorage.getItem(CONFIG.USER_INFO_KEY);
@@ -178,7 +175,6 @@
 
     function redirectToLogin() {
         localStorage.clear();
-        // Uses window.location.replace to clear navigation history and prevent "back" loops
         window.location.replace(`${CONFIG.BASE_URL}/${CONFIG.LOGIN_PAGE}`);
     }
 
@@ -193,7 +189,6 @@
         loader.innerText = 'Syncing latest collections data...';
 
         try {
-            // Added cache: 'no-store' to ensure we always get fresh data from n8n
             const res = await fetch(CONFIG.API_URL, {
                 method: 'GET',
                 headers: { 
@@ -223,21 +218,27 @@
         }
     }
 
-    // Helper functions for building UI (remains logically the same as your version)
     function buildKPIs(kpis){
         const wrap = document.getElementById('kpiSection');
         wrap.innerHTML = '';
         if(!kpis) return;
+
         const entries = [
             {label: 'Total Portfolio', val: (kpis.total_portfolio || 0).toLocaleString() + ' SAR'},
             {label: 'Total Overdue', val: (kpis.total_overdue || 0).toLocaleString() + ' SAR', cls: 'bg-danger'},
             {label: 'High Value Clients', val: kpis.high_value_clients || 0, cls: 'bg-warning'},
+            // REAL amount from backend (SAR)
             {label: 'Payments Today', val: (kpis.payments_today || 0).toLocaleString() + ' SAR', cls: 'bg-success'}
         ];
+
         entries.forEach(e => {
             const box = document.createElement('div');
             box.className = 'kpi-box';
-            box.innerHTML = `<div class="kpi-label">${e.label}</div><div class="kpi-value">${e.cls ? `<span class="badge ${e.cls}">${e.val}</span>` : e.val}</div>`;
+            box.innerHTML = `
+                <div class="kpi-label">${e.label}</div>
+                <div class="kpi-value">
+                    ${e.cls ? `<span class="badge ${e.cls}">${e.val}</span>` : e.val}
+                </div>`;
             wrap.appendChild(box);
         });
     }
@@ -245,12 +246,23 @@
     function buildAlerts(alerts){
         const body = document.querySelector('#alertsTable tbody');
         body.innerHTML = '';
-        if (!alerts || !alerts.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;">No active alerts 🎉</td></tr>'; return; }
+        if (!alerts || !alerts.length) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center;">No active alerts 🎉</td></tr>';
+            return;
+        }
         alerts.forEach(alert => {
             const tr = document.createElement('tr');
-            tr.className = alert.severity === 'CRITICAL' ? 'alert-row critical' : alert.severity === 'HIGH' ? 'alert-row high' : '';
-            const badge = alert.severity === 'CRITICAL' ? 'bg-danger' : alert.severity === 'HIGH' ? 'bg-warning' : 'bg-success';
-            tr.innerHTML = `<td><span class="badge ${badge}">${alert.severity}</span></td><td>${alert.type.replace(/_/g, ' ')}</td><td>${alert.description}</td><td>${alert.client_name || alert.collector || '-'}</td><td>${alert.financial_impact ? alert.financial_impact.toLocaleString() + ' SAR' : '-'}</td><td>${alert.action_required}</td>`;
+            tr.className = alert.severity === 'CRITICAL' ? 'alert-row critical'
+                : alert.severity === 'HIGH' ? 'alert-row high' : '';
+            const badge = alert.severity === 'CRITICAL' ? 'bg-danger'
+                : alert.severity === 'HIGH' ? 'bg-warning' : 'bg-success';
+            tr.innerHTML = `
+                <td><span class="badge ${badge}">${alert.severity}</span></td>
+                <td>${alert.type.replace(/_/g, ' ')}</td>
+                <td>${alert.description}</td>
+                <td>${alert.client_name || alert.collector || '-'}</td>
+                <td>${alert.financial_impact ? alert.financial_impact.toLocaleString() + ' SAR' : '-'}</td>
+                <td>${alert.action_required}</td>`;
             body.appendChild(tr);
         });
     }
@@ -259,43 +271,94 @@
         const body = document.querySelector('#collectorsTable tbody');
         body.innerHTML = '';
         if (!perf) return;
+
         Object.entries(perf).forEach(([name, stats]) => {
             const tr = document.createElement('tr');
-            let icon = (stats.minutes_since_activity || 999) < 30 ? '🟢' : '🔴';
-            tr.innerHTML = `<td>${icon} <strong>${name}</strong></td><td>${stats.total_clients || 0}</td><td>${(stats.reference_portfolio || 0).toLocaleString()}</td><td>${(stats.outstanding_amount || 0).toLocaleString()}</td><td>${(stats.ytd_collections || 0).toLocaleString()}</td><td>${stats.follow_ups_today || 0}</td><td>${stats.payments_today || 0}</td><td>${stats.promises_today || 0}</td><td>${stats.logged_in_today ? 'Yes' : 'No'}</td><td>${stats.last_activity || 'N/A'}</td>`;
+            const icon = (stats.minutes_since_activity || 999) < 30 ? '🟢' : '🔴';
+            const paymentsAmt = (stats.payments_today_amount || 0).toLocaleString();
+            const paymentsCount = stats.payments_today_count || 0;
+
+            tr.innerHTML = `
+                <td>${icon} <strong>${name}</strong></td>
+                <td>${stats.total_clients || 0}</td>
+                <td>${(stats.reference_portfolio || 0).toLocaleString()}</td>
+                <td>${(stats.outstanding_amount || 0).toLocaleString()}</td>
+                <td>${(stats.ytd_collections || 0).toLocaleString()}</td>
+                <td>${stats.follow_ups_today || 0}</td>
+                <td>${paymentsAmt}</td>
+                <td>${paymentsCount}</td>
+                <td>${stats.promises_today || 0}</td>
+                <td>${stats.logged_in_today ? 'Yes' : 'No'}</td>
+                <td>${stats.last_activity || 'N/A'}</td>`;
             body.appendChild(tr);
         });
     }
 
     function buildSystemHealth(sh) {
         if (!sh) return;
-        document.getElementById('activeCollectors').textContent = `${sh.active_collectors_today}/${sh.total_collectors}`;
-        document.getElementById('pendingReminders').textContent = sh.total_reminders_pending;
-        document.getElementById('systemEfficiency').textContent = sh.system_efficiency + '%';
-        document.getElementById('totalFollowupsToday').textContent = sh.total_follow_ups_today;
+        document.getElementById('activeCollectors').textContent =
+            `${sh.active_collectors_today}/${sh.total_collectors}`;
+        document.getElementById('pendingReminders').textContent =
+            sh.total_reminders_pending;
+        document.getElementById('systemEfficiency').textContent =
+            (typeof sh.system_efficiency === 'number'
+                ? sh.system_efficiency.toString() + '%'
+                : '-');
+        document.getElementById('totalFollowupsToday').textContent =
+            sh.total_follow_ups_today;
     }
 
     function buildMonthlyReporting(data) {
         if (!data) return;
+
+        // Overall
         const overallBody = document.querySelector('#overallMonthlyTable tbody');
         overallBody.innerHTML = '';
         Object.keys(data.overall || {}).sort().reverse().forEach(m => {
-            overallBody.innerHTML += `<tr><td>${m}</td><td>${data.overall[m].toLocaleString()} SAR</td></tr>`;
+            overallBody.innerHTML += `
+                <tr>
+                    <td>${m}</td>
+                    <td>${data.overall[m].toLocaleString()} SAR</td>
+                </tr>`;
+        });
+
+        // By collector
+        const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
+        collectorBody.innerHTML = '';
+
+        const byCollector = data.by_collector || {};
+        const monthsSet = new Set();
+
+        Object.values(byCollector).forEach(monthsObj => {
+            Object.keys(monthsObj || {}).forEach(m => monthsSet.add(m));
+        });
+        const sortedMonths = Array.from(monthsSet).sort().reverse();
+
+        Object.entries(byCollector).forEach(([collectorName, monthsObj]) => {
+            let breakdownParts = [];
+            sortedMonths.forEach(m => {
+                if (monthsObj[m]) {
+                    breakdownParts.push(
+                        `${m}: ${monthsObj[m].total.toLocaleString()} SAR`
+                    );
+                }
+            });
+            const breakdown = breakdownParts.length ? breakdownParts.join(' | ') : '-';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${collectorName}</td><td>${breakdown}</td>`;
+            collectorBody.appendChild(tr);
         });
     }
 
-    // ✅ LOGOUT: Explicit absolute redirect
     function logout() {
         redirectToLogin();
     }
     
-    // Auto-refresh every 2.5 minutes
     setInterval(loadDashboard, 150000); 
     document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
-
 
 
 
