@@ -1,10 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <title>Supervisor Dashboard – Collections Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Prevent GitHub Pages 404/Caching issues on redirect -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
 
     <style>
         :root {
@@ -17,6 +20,9 @@
         body        { margin: 0; font-family: Arial, sans-serif; background: var(--bg-light); }
         header      { background: var(--primary); color: #fff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
         h1, h2, h3 { margin: 0; }
+        .btn-group  { display: flex; gap: 0.5rem; align-items: center; }
+        .refresh-btn { background: #27ae60; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .refresh-btn:hover { background: #219150; }
         .logout-btn { background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
         .logout-btn:hover { background: #b71c1c; }
         .wrapper   { padding: 1.5rem; max-width: 1400px; margin: auto; }
@@ -42,7 +48,6 @@
         .bg-success { background:var(--success); color:#fff; }
         .reporting-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-top: 1rem; }
         @media (max-width: 900px) { .reporting-grid { grid-template-columns: 1fr; } }
-        @media (max-width:600px){ .kpi-value{font-size:1.3rem;} header { flex-direction: column; gap: 1rem; } .tabs { flex-direction: column; gap: 0; } .tab-btn { border-radius: 0; } }
     </style>
 </head>
 <body>
@@ -53,7 +58,10 @@
         </div>
         <div class="user-info">
             <span id="supervisorName">Loading...</span>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <div class="btn-group">
+                <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh</button>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
         </div>
     </header>
 
@@ -140,7 +148,6 @@
     function switchTab(target){
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(target + 'Tab').classList.add('active');
-        
         document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
         document.getElementById(target + 'Section').classList.add('active');
     }
@@ -151,10 +158,6 @@
         if (!token || !userInfo) { redirectToLogin('Session expired. Please log in again.'); return false; }
         try {
             const parsedUserInfo = JSON.parse(userInfo);
-            const loginTime = new Date(parsedUserInfo.loginTime);
-            const now = new Date();
-            const sessionTimeout = 8 * 60 * 60 * 1000;
-            if (now - loginTime > sessionTimeout) { redirectToLogin('Session expired. Please log in again.'); return false; }
             document.getElementById('supervisorName').textContent = parsedUserInfo.name || parsedUserInfo.email;
             return true;
         } catch (error) { redirectToLogin('Invalid session. Please log in again.'); return false; }
@@ -163,23 +166,30 @@
     function redirectToLogin(message) {
         localStorage.removeItem(CONFIG.TOKEN_KEY);
         localStorage.removeItem(CONFIG.USER_INFO_KEY);
-        alert(message);
-        window.location.href = CONFIG.LOGIN_URL;
+        window.location.replace(CONFIG.LOGIN_URL);
     }
 
     async function loadDashboard(){
         if (!validateSession()) return;
         const token = localStorage.getItem(CONFIG.TOKEN_KEY);
         const userInfo = JSON.parse(localStorage.getItem(CONFIG.USER_INFO_KEY));
+        
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('loading').innerText = 'Syncing latest collections data...';
+
         try{
             const res = await fetch(CONFIG.API_URL, {
                 method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}`, 'X-Supervisor-Email': userInfo.email, 'Content-Type': 'application/json' }
+                headers: { 
+                    'Authorization': `Bearer ${token}`, 
+                    'X-Supervisor-Email': userInfo.email, 
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache' 
+                }
             });
-            if (!res.ok) { throw new Error(`HTTP ${res.status}: ${res.statusText}`); }
+            if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
             const data = await res.json();
-            if (!data.success) { throw new Error(data.message || 'Failed to load dashboard data'); }
-
+            
             buildKPIs(data.kpis);
             buildAlerts(data.alerts);
             buildCollectorTable(data.collector_performance);
@@ -191,11 +201,7 @@
             
         } catch(err) {
             console.error('Dashboard loading error:', err);
-            if (err.message.includes('401') || err.message.includes('403')) {
-                redirectToLogin('Authentication failed. Please log in again.');
-            } else {
-                document.getElementById('loading').innerText = 'Error loading data. Please refresh the page.';
-            }
+            document.getElementById('loading').innerText = 'Error loading data. Please check your connection.';
         }
     }
 
@@ -218,9 +224,7 @@
                 badge.className = `badge ${e.cls}`;
                 badge.textContent = e.val;
                 valDiv.appendChild(badge);
-            } else {
-                valDiv.textContent = e.val;
-            }
+            } else { valDiv.textContent = e.val; }
             box.innerHTML = `<div class="kpi-label">${e.label}</div>`;
             box.appendChild(valDiv);
             wrap.appendChild(box);
@@ -235,185 +239,88 @@
             const tr = document.createElement('tr');
             tr.className = alert.severity === 'CRITICAL' ? 'alert-row critical' : alert.severity === 'HIGH' ? 'alert-row high' : '';
             const severityBadge = alert.severity === 'CRITICAL' ? 'bg-danger' : alert.severity === 'HIGH' ? 'bg-warning' : 'bg-success';
-            tr.innerHTML = `<td><span class="badge ${severityBadge}">${alert.severity}</span></td><td>${alert.type.replace(/_/g, ' ')}</td><td>${alert.description || alert.title}</td><td>${alert.client_name || alert.collector || '-'}</td><td>${alert.financial_impact ? alert.financial_impact.toLocaleString('en-US') + ' SAR' : '-'}</td><td>${alert.action_required || 'Review required'}</td>`;
+            tr.innerHTML = `<td><span class="badge ${severityBadge}">${alert.severity}</span></td><td>${alert.type.replace(/_/g, ' ')}</td><td>${alert.description}</td><td>${alert.client_name || alert.collector || '-'}</td><td>${alert.financial_impact ? alert.financial_impact.toLocaleString() + ' SAR' : '-'}</td><td>${alert.action_required}</td>`;
             body.appendChild(tr);
         });
     }
 
-    // --- UPDATED buildCollectorTable FUNCTION (Start) ---
     function buildCollectorTable(collectorPerformance) {
         const body = document.querySelector('#collectorsTable tbody');
         body.innerHTML = '';
-        
-        if (!collectorPerformance) { 
-            body.innerHTML = '<tr><td colspan="10" style="text-align:center;">No collector data available</td></tr>'; 
-            return; 
-        }
+        if (!collectorPerformance) return;
 
-        // Sort: Active users first (minutes < 30), then by Outstanding Amount
         const collectors = Object.entries(collectorPerformance).sort(([, a], [, b]) => {
-            const aActive = (a.minutes_since_activity || 9999) < 30 ? 1 : 0;
-            const bActive = (b.minutes_since_activity || 9999) < 30 ? 1 : 0;
-            
-            // Primary Sort: Active Status (descending)
-            if (bActive - aActive !== 0) return bActive - aActive; 
-            
-            // Secondary Sort: Outstanding Amount (descending)
-            return (b.outstanding_amount || 0) - (a.outstanding_amount || 0);
+            const aActive = (a.minutes_since_activity || 999) < 30 ? 1 : 0;
+            const bActive = (b.minutes_since_activity || 999) < 30 ? 1 : 0;
+            return bActive - aActive || (b.outstanding_amount - a.outstanding_amount);
         });
 
         collectors.forEach(([name, stats]) => {
             const tr = document.createElement('tr');
+            let mins = stats.minutes_since_activity;
+            let icon = '🔴';
+            if (mins < 30) icon = '🟢';
+            else if (mins < 60) icon = '🟡';
+            else if (mins < 1440) icon = '⚪';
 
-            // Logic to choose the Status Icon and Text using 'minutes_since_activity'
-            let minutes = stats.minutes_since_activity;
-            let statusIcon = '🔴'; // Default offline
-            let activityText = stats.last_activity || 'Never'; // Fallback string from backend
-
-            if (minutes !== undefined && minutes !== null && minutes < 999999) {
-                if (minutes < 5) {
-                    statusIcon = '🟢'; // Online (Active < 5 mins)
-                    activityText = 'Just now';
-                } else if (minutes < 30) {
-                    statusIcon = '🟢'; // Online (Active < 30 mins)
-                    activityText = `${minutes} mins ago`;
-                } else if (minutes < 60) {
-                    statusIcon = '🟡'; // Away (< 1 hour)
-                    activityText = `${minutes} mins ago`;
-                } else if (minutes < 1440) {
-                    statusIcon = '⚪'; // Offline today
-                    activityText = `${Math.floor(minutes/60)} hrs ago`;
-                } else {
-                    statusIcon = '🔴'; // Offline long time
-                    activityText = `${Math.floor(minutes/1440)} days ago`;
-                }
-            }
-            
-            // Optional: Highlight the row for active collectors
-            if (minutes < 30) {
-                tr.style.backgroundColor = '#e8f5e9'; // Light green background
-            }
-
+            if (mins < 30) tr.style.backgroundColor = '#e8f5e9';
 
             tr.innerHTML = `
-                <td>
-                    ${statusIcon} <strong>${name}</strong>
-                </td>
+                <td>${icon} <strong>${name}</strong></td>
                 <td>${stats.total_clients || 0}</td>
-                <td>${(stats.reference_portfolio || 0).toLocaleString('en-US')} SAR</td>
-                <td>${(stats.outstanding_amount || 0).toLocaleString('en-US')} SAR</td>
-                <td>${(stats.ytd_collections || 0).toLocaleString('en-US')} SAR</td>
+                <td>${(stats.reference_portfolio || 0).toLocaleString()}</td>
+                <td>${(stats.outstanding_amount || 0).toLocaleString()}</td>
+                <td>${(stats.ytd_collections || 0).toLocaleString()}</td>
                 <td>${stats.follow_ups_today || 0}</td>
                 <td>${stats.payments_today || 0}</td>
                 <td>${stats.promises_today || 0}</td>
                 <td>${stats.logged_in_today ? 'Yes' : 'No'}</td>
-                <td>${activityText}</td>
+                <td>${stats.last_activity}</td>
             `;
             body.appendChild(tr);
         });
     }
-    // --- UPDATED buildCollectorTable FUNCTION (End) ---
 
-
-    function buildSystemHealth(systemHealth) {
-        if (!systemHealth) return;
-        document.getElementById('activeCollectors').textContent = `${systemHealth.active_collectors_today || 0}/${systemHealth.total_collectors || 0}`;
-        document.getElementById('pendingReminders').textContent = systemHealth.total_reminders_pending || 0;
-        const efficiency = parseFloat(systemHealth.system_efficiency || 0);
-        document.getElementById('systemEfficiency').textContent = efficiency.toFixed(1) + '%';
-        document.getElementById('totalFollowupsToday').textContent = systemHealth.total_follow_ups_today || 0;
+    function buildSystemHealth(sh) {
+        if (!sh) return;
+        document.getElementById('activeCollectors').textContent = `${sh.active_collectors_today}/${sh.total_collectors}`;
+        document.getElementById('pendingReminders').textContent = sh.total_reminders_pending;
+        document.getElementById('systemEfficiency').textContent = sh.system_efficiency + '%';
+        document.getElementById('totalFollowupsToday').textContent = sh.total_follow_ups_today;
     }
 
-    // --- REWRITTEN buildMonthlyReporting FUNCTION ---
-    function buildMonthlyReporting(reportingData) {
-        if (!reportingData) return;
-
-        // --- Build Overall Monthly Table (no changes here) ---
+    function buildMonthlyReporting(data) {
+        if (!data) return;
         const overallBody = document.querySelector('#overallMonthlyTable tbody');
         overallBody.innerHTML = '';
-        const overallMonths = Object.keys(reportingData.overall || {}).sort().reverse();
-        if (overallMonths.length === 0) {
-            overallBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No payment data available.</td></tr>';
-        } else {
-            overallMonths.forEach(month => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${month}</td><td>${reportingData.overall[month].toLocaleString('en-US')} SAR</td>`;
-                overallBody.appendChild(tr);
+        Object.keys(data.overall || {}).sort().reverse().forEach(m => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${m}</td><td>${data.overall[m].toLocaleString()} SAR</td>`;
+            overallBody.appendChild(tr);
+        });
+
+        const collBody = document.querySelector('#collectorMonthlyTable tbody');
+        collBody.innerHTML = '';
+        Object.keys(data.by_collector || {}).sort().forEach(c => {
+            const tr = document.createElement('tr');
+            let breakdown = '';
+            Object.keys(data.by_collector[c]).sort().reverse().forEach(m => {
+                breakdown += `<details><summary>${m}: ${data.by_collector[c][m].total.toLocaleString()} SAR</summary><ul>` +
+                    data.by_collector[c][m].details.map(d => `<li>${d.client_name}: ${d.amount.toLocaleString()}</li>`).join('') + `</ul></details>`;
             });
-        }
-
-        // --- Build Interactive Collector Monthly Table ---
-        const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
-        collectorBody.innerHTML = '';
-        const collectors = Object.keys(reportingData.by_collector || {}).sort();
-        if (collectors.length === 0) {
-            collectorBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No collector payment data available.</td></tr>';
-        } else {
-            collectors.forEach(collector => {
-                const tr = document.createElement('tr');
-                const monthlyData = reportingData.by_collector[collector];
-                const months = Object.keys(monthlyData).sort().reverse();
-
-                // Create the cell for the collector's name
-                const collectorCell = document.createElement('td');
-                collectorCell.innerHTML = `<strong>${collector}</strong>`;
-
-                // Create the cell for the interactive breakdown
-                const breakdownCell = document.createElement('td');
-                months.forEach(month => {
-                    const monthDetails = monthlyData[month];
-
-                    // Create a <details> element for each month (this is the dropdown)
-                    const detailsElement = document.createElement('details');
-                    
-                    // The <summary> is the visible part you click on
-                    const summaryElement = document.createElement('summary');
-                    summaryElement.style.cursor = 'pointer';
-                    summaryElement.style.fontWeight = 'bold';
-                    summaryElement.innerHTML = `${month}: ${monthDetails.total.toLocaleString('en-US')} SAR`;
-                    
-                    // The client-specific list goes inside the <details> element
-                    const clientList = document.createElement('ul');
-                    clientList.style.marginTop = '10px';
-                    clientList.style.paddingLeft = '20px';
-                    clientList.style.listStyleType = 'square';
-                    
-                    // Sort client details by amount, descending
-                    monthDetails.details.sort((a, b) => b.amount - a.amount);
-
-                    monthDetails.details.forEach(detail => {
-                        const listItem = document.createElement('li');
-                        listItem.style.fontSize = '0.8rem';
-                        listItem.style.marginBottom = '5px';
-                        listItem.innerHTML = `${detail.client_name} (<em>${detail.client_id}</em>): <strong>${detail.amount.toLocaleString('en-US')} SAR</strong>`;
-                        clientList.appendChild(listItem);
-                    });
-
-                    detailsElement.appendChild(summaryElement);
-                    detailsElement.appendChild(clientList);
-                    breakdownCell.appendChild(detailsElement);
-                });
-
-                tr.appendChild(collectorCell);
-                tr.appendChild(breakdownCell);
-                collectorBody.appendChild(tr);
-            });
-        }
+            tr.innerHTML = `<td><strong>${c}</strong></td><td>${breakdown}</td>`;
+            collBody.appendChild(tr);
+        });
     }
 
-    function logout() {
-        localStorage.removeItem(CONFIG.TOKEN_KEY);
-        localStorage.removeItem(CONFIG.USER_INFO_KEY);
-        window.location.href = CONFIG.LOGIN_URL;
-    }
-
-    // Set interval to refresh dashboard every 2 minutes
-    setInterval(loadDashboard, 2 * 60 * 1000); 
+    function logout() { redirectToLogin('Logged out successfully.'); }
+    
+    // Auto-refresh every 2.5 minutes
+    setInterval(loadDashboard, 150000); 
     document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
-
 
 
 
