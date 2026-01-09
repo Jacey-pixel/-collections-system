@@ -336,41 +336,64 @@
     }
 
     function buildMonthlyReporting(data) {
-        if (!data) return;
+    if (!data) return;
 
-        const overallBody = document.querySelector('#overallMonthlyTable tbody');
-        overallBody.innerHTML = '';
-        Object.keys(data.overall || {}).sort().reverse().forEach(m => {
-            overallBody.innerHTML += `
-                <tr>
-                    <td>${m}</td>
-                    <td>${data.overall[m].toLocaleString()} SAR</td>
-                </tr>`;
+    // 1. Fill Overall Monthly Table
+    const overallBody = document.querySelector('#overallMonthlyTable tbody');
+    overallBody.innerHTML = '';
+    Object.keys(data.overall || {}).sort().reverse().forEach(m => {
+        overallBody.innerHTML += `
+            <tr>
+                <td><strong>${m}</strong></td>
+                <td>${data.overall[m].toLocaleString()} SAR</td>
+            </tr>`;
+    });
+
+    // 2. Fill Collections by Collector Table
+    const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
+    collectorBody.innerHTML = '';
+
+    const byCollector = data.by_collector || {};
+    const monthsSet = new Set();
+    Object.values(byCollector).forEach(monthsObj => {
+        Object.keys(monthsObj || {}).forEach(m => monthsSet.add(m));
+    });
+    const sortedMonths = Array.from(monthsSet).sort().reverse();
+
+    Object.entries(byCollector).forEach(([collectorName, monthsObj]) => {
+        const tr = document.createElement('tr');
+        
+        let breakdownHTML = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        
+        sortedMonths.forEach(m => {
+            if (monthsObj[m]) {
+                const monthTotal = monthsObj[m].total.toLocaleString();
+                // Map through details to show client names and their specific payments
+                const clientList = monthsObj[m].details.map(d => 
+                    `• ${d.client_name}: ${d.amount.toLocaleString()} SAR`
+                ).join('<br>');
+
+                breakdownHTML += `
+                    <details style="border: 1px solid #eee; padding: 5px; border-radius: 4px; background: #fafafa;">
+                        <summary style="cursor: pointer; font-weight: bold; color: #004a99; list-style: none;">
+                            ▶ ${m}: ${monthTotal} SAR
+                        </summary>
+                        <div style="padding: 8px 0 5px 15px; font-size: 0.8rem; color: #444; line-height: 1.5; border-top: 1px solid #eee; margin-top: 5px;">
+                            ${clientList}
+                        </div>
+                    </details>`;
+            }
         });
+        
+        breakdownHTML += '</div>';
 
-        const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
-        collectorBody.innerHTML = '';
-
-        const byCollector = data.by_collector || {};
-        const monthsSet = new Set();
-        Object.values(byCollector).forEach(monthsObj => {
-            Object.keys(monthsObj || {}).forEach(m => monthsSet.add(m));
-        });
-        const sortedMonths = Array.from(monthsSet).sort().reverse();
-
-        Object.entries(byCollector).forEach(([collectorName, monthsObj]) => {
-            const parts = [];
-            sortedMonths.forEach(m => {
-                if (monthsObj[m]) {
-                    parts.push(`${m}: ${monthsObj[m].total.toLocaleString()} SAR`);
-                }
-            });
-            const breakdown = parts.length ? parts.join(' | ') : '-';
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${collectorName}</td><td>${breakdown}</td>`;
-            collectorBody.appendChild(tr);
-        });
-    }
+        tr.innerHTML = `
+            <td style="vertical-align: top; font-weight: bold; color: #333;">${collectorName}</td>
+            <td>${breakdownHTML || '-'}</td>
+        `;
+        collectorBody.appendChild(tr);
+    });
+}
 
     function logout() {
         redirectToLogin();
@@ -381,5 +404,6 @@
     </script>
 </body>
 </html>
+
 
 
