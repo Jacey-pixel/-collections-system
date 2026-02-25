@@ -24,20 +24,20 @@
         .refresh-btn:hover { background: #219150; }
         .logout-btn { background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; transition: 0.3s; }
         .logout-btn:hover { background: #b71c1c; }
-        .wrapper   { padding: 1.5rem; max-width: 1400px; margin: auto; }
-        .kpi-grid  { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1rem; }
-        .kpi-box   { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 1rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .wrapper    { padding: 1.5rem; max-width: 1400px; margin: auto; }
+        .kpi-grid   { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1rem; }
+        .kpi-box    { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 1rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .kpi-label { font-size: .85rem; color: #666; }
         .kpi-value { font-size: 1.6rem; font-weight: bold; margin-top: .25rem; }
-        .tabs      { margin-top: 2rem; display: flex; gap: .5rem; border-bottom: 2px solid var(--primary); }
-        .tab-btn   { flex-grow: 1; padding: .75rem; border: 1px solid #ccc; border-bottom: none; background:#eee; cursor:pointer; text-align:center; border-radius: 6px 6px 0 0; font-weight: bold; transition: 0.2s; }
+        .tabs       { margin-top: 2rem; display: flex; gap: .5rem; border-bottom: 2px solid var(--primary); }
+        .tab-btn    { flex-grow: 1; padding: .75rem; border: 1px solid #ccc; border-bottom: none; background:#eee; cursor:pointer; text-align:center; border-radius: 6px 6px 0 0; font-weight: bold; transition: 0.2s; }
         .tab-btn.active{ background: var(--primary); color:#fff; border-color: var(--primary); }
-        .section   { display: none; margin-top: -1px; background:#fff; border:1px solid #ccc; border-radius:0 0 6px 6px; padding:1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .section    { display: none; margin-top: -1px; background:#fff; border:1px solid #ccc; border-radius:0 0 6px 6px; padding:1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .section.active { display: block; }
-        table      { width:100%; border-collapse: collapse; margin-top:.75rem; }
-        th,td      { border:1px solid #ddd; padding:.5rem .6rem; font-size:.85rem; text-align: left;}
-        th         { background:#f2f2f2; position: sticky; top: 0; }
-        #loading   { text-align:center; padding:2rem; font-size:1.1rem; color:#666; font-style: italic; }
+        table       { width:100%; border-collapse: collapse; margin-top:.75rem; }
+        th,td       { border:1px solid #ddd; padding:.5rem .6rem; font-size:.85rem; text-align: left;}
+        th          { background:#f2f2f2; position: sticky; top: 0; }
+        #loading    { text-align:center; padding:2rem; font-size:1.1rem; color:#666; font-style: italic; }
         .user-info  { display: flex; align-items: center; gap: 1rem; }
         .alert-row.high    { background:#fff3e0; }
         .alert-row.critical{ background:#ffebee; }
@@ -105,7 +105,7 @@
                         <th>Payments Today (Amt)</th>
                         <th>Payments Today (Count)</th>
                         <th>Promises</th>
-                        <th>Logged-in</th>
+                        <th>Status</th>
                         <th>Last Activity</th>
                     </tr>
                 </thead>
@@ -155,7 +155,7 @@
             </div>
         </div>
 
-        <div id="loading">Loading dashboard data…</div>
+        <div id="loading">Loading dashboard data...</div>
     </div>
 
     <script>
@@ -301,12 +301,17 @@
 
         Object.entries(perf).forEach(([name, stats]) => {
             const tr = document.createElement('tr');
-            const icon = stats.logged_in_today ? '🟢' : '🔴';
+            // Updated Logic: Green if active in last 4 hours
+            const isOnline = stats.logged_in_today;
+            const icon = isOnline ? '🟢' : '⚪';
+            const statusText = isOnline ? 'Online' : 'Offline';
+            const statusColor = isOnline ? 'color: #27ae60; font-weight: bold;' : 'color: #999;';
+
             const paymentsAmt   = (stats.payments_today_amount || 0).toLocaleString();
             const paymentsCount = stats.payments_today_count || 0;
 
             tr.innerHTML = `
-                <td>${icon} <strong>${name}</strong></td>
+                <td><strong>${name}</strong></td>
                 <td>${stats.total_clients || 0}</td>
                 <td>${(stats.reference_portfolio || 0).toLocaleString()}</td>
                 <td>${(stats.outstanding_amount || 0).toLocaleString()}</td>
@@ -315,7 +320,7 @@
                 <td>${paymentsAmt}</td>
                 <td>${paymentsCount}</td>
                 <td>${stats.promises_today || 0}</td>
-                <td>${stats.logged_in_today ? 'Yes' : 'No'}</td>
+                <td style="${statusColor}">${icon} ${statusText}</td>
                 <td>${stats.last_activity || 'N/A'}</td>`;
             body.appendChild(tr);
         });
@@ -336,64 +341,63 @@
     }
 
     function buildMonthlyReporting(data) {
-    if (!data) return;
+        if (!data) return;
 
-    // 1. Fill Overall Monthly Table
-    const overallBody = document.querySelector('#overallMonthlyTable tbody');
-    overallBody.innerHTML = '';
-    Object.keys(data.overall || {}).sort().reverse().forEach(m => {
-        overallBody.innerHTML += `
-            <tr>
-                <td><strong>${m}</strong></td>
-                <td>${data.overall[m].toLocaleString()} SAR</td>
-            </tr>`;
-    });
-
-    // 2. Fill Collections by Collector Table
-    const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
-    collectorBody.innerHTML = '';
-
-    const byCollector = data.by_collector || {};
-    const monthsSet = new Set();
-    Object.values(byCollector).forEach(monthsObj => {
-        Object.keys(monthsObj || {}).forEach(m => monthsSet.add(m));
-    });
-    const sortedMonths = Array.from(monthsSet).sort().reverse();
-
-    Object.entries(byCollector).forEach(([collectorName, monthsObj]) => {
-        const tr = document.createElement('tr');
-        
-        let breakdownHTML = '<div style="display: flex; flex-direction: column; gap: 8px;">';
-        
-        sortedMonths.forEach(m => {
-            if (monthsObj[m]) {
-                const monthTotal = monthsObj[m].total.toLocaleString();
-                // Map through details to show client names and their specific payments
-                const clientList = monthsObj[m].details.map(d => 
-                    `• ${d.client_name}: ${d.amount.toLocaleString()} SAR`
-                ).join('<br>');
-
-                breakdownHTML += `
-                    <details style="border: 1px solid #eee; padding: 5px; border-radius: 4px; background: #fafafa;">
-                        <summary style="cursor: pointer; font-weight: bold; color: #004a99; list-style: none;">
-                            ▶ ${m}: ${monthTotal} SAR
-                        </summary>
-                        <div style="padding: 8px 0 5px 15px; font-size: 0.8rem; color: #444; line-height: 1.5; border-top: 1px solid #eee; margin-top: 5px;">
-                            ${clientList}
-                        </div>
-                    </details>`;
-            }
+        // 1. Fill Overall Monthly Table
+        const overallBody = document.querySelector('#overallMonthlyTable tbody');
+        overallBody.innerHTML = '';
+        Object.keys(data.overall || {}).sort().reverse().forEach(m => {
+            overallBody.innerHTML += `
+                <tr>
+                    <td><strong>${m}</strong></td>
+                    <td>${data.overall[m].toLocaleString()} SAR</td>
+                </tr>`;
         });
-        
-        breakdownHTML += '</div>';
 
-        tr.innerHTML = `
-            <td style="vertical-align: top; font-weight: bold; color: #333;">${collectorName}</td>
-            <td>${breakdownHTML || '-'}</td>
-        `;
-        collectorBody.appendChild(tr);
-    });
-}
+        // 2. Fill Collections by Collector Table
+        const collectorBody = document.querySelector('#collectorMonthlyTable tbody');
+        collectorBody.innerHTML = '';
+
+        const byCollector = data.by_collector || {};
+        const monthsSet = new Set();
+        Object.values(byCollector).forEach(monthsObj => {
+            Object.keys(monthsObj || {}).forEach(m => monthsSet.add(m));
+        });
+        const sortedMonths = Array.from(monthsSet).sort().reverse();
+
+        Object.entries(byCollector).forEach(([collectorName, monthsObj]) => {
+            const tr = document.createElement('tr');
+            
+            let breakdownHTML = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+            
+            sortedMonths.forEach(m => {
+                if (monthsObj[m]) {
+                    const monthTotal = monthsObj[m].total.toLocaleString();
+                    const clientList = monthsObj[m].details.map(d => 
+                        `• ${d.client_name}: ${d.amount.toLocaleString()} SAR`
+                    ).join('<br>');
+
+                    breakdownHTML += `
+                        <details style="border: 1px solid #eee; padding: 5px; border-radius: 4px; background: #fafafa;">
+                            <summary style="cursor: pointer; font-weight: bold; color: #004a99; list-style: none;">
+                                ▶ ${m}: ${monthTotal} SAR
+                            </summary>
+                            <div style="padding: 8px 0 5px 15px; font-size: 0.8rem; color: #444; line-height: 1.5; border-top: 1px solid #eee; margin-top: 5px;">
+                                ${clientList}
+                            </div>
+                        </details>`;
+                }
+            });
+            
+            breakdownHTML += '</div>';
+
+            tr.innerHTML = `
+                <td style="vertical-align: top; font-weight: bold; color: #333;">${collectorName}</td>
+                <td>${breakdownHTML || '-'}</td>
+            `;
+            collectorBody.appendChild(tr);
+        });
+    }
 
     function logout() {
         redirectToLogin();
@@ -404,6 +408,3 @@
     </script>
 </body>
 </html>
-
-
-
