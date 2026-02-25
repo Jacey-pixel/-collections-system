@@ -45,9 +45,9 @@
 
 <script>
 (() => {
-    const form       = document.getElementById('loginForm');
-    const btn        = document.getElementById('loginBtn');
-    const errBox     = document.getElementById('errorBox');
+    const form        = document.getElementById('loginForm');
+    const btn         = document.getElementById('loginBtn');
+    const errBox      = document.getElementById('errorBox');
     const successBox = document.getElementById('successBox');
     const loadBox    = document.getElementById('loadingBox');
     
@@ -72,6 +72,21 @@
         successBox.style.display = 'none';
     };
 
+    // Helper to log activity to n8n even on resume
+    const silentCheckIn = async (email) => {
+        try {
+            await fetch(apiURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: email, 
+                    password: 'SESSION_RESUME', // Flag for n8n
+                    isCheckIn: true 
+                })
+            });
+        } catch (e) { console.warn("Background check-in failed"); }
+    };
+
     form.addEventListener('submit', async e => {
         e.preventDefault();
         hideMessages();
@@ -91,25 +106,20 @@
 
             const data = await res.json();
 
-            // Handle the case where n8n returns success: false
             if (!data.success || !data.userInfo) {
                 throw new Error(data.message || 'Invalid email or password');
             }
 
             showSuccess('Login successful! Redirecting...');
             
-            // ✅ PERSIST SESSION
             localStorage.setItem('sessionToken', data.userInfo.sessionToken);
             localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
 
-            // ✅ REDIRECTION LOGIC
-            // If n8n sends a full URL, use it. Otherwise, construct it from baseURL.
             let finalUrl = data.redirectUrl;
             if (finalUrl && !finalUrl.startsWith('http')) {
                 const target = finalUrl.startsWith('/') ? finalUrl.substring(1) : finalUrl;
                 finalUrl = baseURL + target;
             } else if (!finalUrl) {
-                // Fallback if n8n misses the URL
                 finalUrl = (data.userInfo.type === 'SUPERVISOR') 
                     ? baseURL + 'supervisor-dashboard.html' 
                     : baseURL + 'dashboard.html';
@@ -129,18 +139,22 @@
         }
     });
 
-    // ✅ SESSION RESUME LOGIC (Absolute Paths)
+    // ✅ FIXED SESSION RESUME LOGIC
     document.addEventListener('DOMContentLoaded', () => {
         const token = localStorage.getItem('sessionToken');
         const user  = localStorage.getItem('userInfo');
         
         if (token && user) {
             const userInfo = JSON.parse(user);
+            
+            // 1. Trigger the background log so supervisors see "Active"
+            silentCheckIn(userInfo.email);
+            
             const target = userInfo.type === 'SUPERVISOR' 
                 ? 'supervisor-dashboard.html' 
                 : 'dashboard.html';
             
-            showSuccess('Session found. Accessing dashboard...');
+            showSuccess('Session found. Updating status and accessing dashboard...');
             setTimeout(() => {
                 window.location.href = baseURL + target + '?v=' + Date.now();
             }, 1000);
@@ -150,5 +164,6 @@
 </script>
 </body>
 </html>
+
 
 
